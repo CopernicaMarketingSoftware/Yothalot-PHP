@@ -29,6 +29,38 @@ int Array::size() const
 }
 
 /**
+ *  Retrieve the type of the element at a certain position
+ *
+ *  @param  name    the name of the element to retrieve the type for
+ *  @return Type
+ */
+Type Array::type(int index) const
+{
+    // the value
+    json_object *value = json_object_array_get_idx(_json, index);
+
+    // check if the key exists
+    if (!value) return Type::Undefined;
+
+    // map internal json-c value to external value
+    switch (json_object_get_type(value))
+    {
+        case json_type_null:    return Type::Null;
+        case json_type_boolean: return Type::Boolean;
+        case json_type_double:  return Type::Decimal;
+        case json_type_int:     return Type::Integer;
+        case json_type_object:  return Type::Object;
+        case json_type_array:   return Type::Array;
+        case json_type_string:  return Type::String;
+    }
+
+    // the compiler knows that we have got all
+    // options covered, but it still cribs about
+    // not having a return statement here
+    return Type::Undefined;
+}
+
+/**
  *  Check if the element at a certain position is a string
  *  @param  index
  *  @return bool
@@ -423,6 +455,36 @@ Array Array::clone() const
 
     // and return the result
     return result;
+}
+
+/**
+ *  Turn into a Php::Value
+ *  @return Php::Value
+ */
+Php::Value Array::phpValue() const
+{
+    // create an output value
+    Php::Value output;
+
+    // loop over the entire array
+    for (int i = 0; i < size(); ++i)
+    {
+        // switch through all the types and add them to the php value
+        switch (type(i))
+        {
+        case JSON::Type::Null:    output.set(i, nullptr);              break;
+        case JSON::Type::Boolean: output.set(i, boolean(i));           break;
+        case JSON::Type::Decimal: output.set(i, decimal(i));           break;
+        case JSON::Type::Integer: output.set(i, integer(i));           break;
+        case JSON::Type::String:  output.set(i, c_str(i));             break;
+        case JSON::Type::Array:   output.set(i, array(i).phpValue());  break;
+        case JSON::Type::Object:  output.set(i, object(i).phpValue()); break;
+        default:                                                       break;
+        }
+    }
+
+    // return our output
+    return output;
 }
 
 /**

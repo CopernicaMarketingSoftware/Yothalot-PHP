@@ -139,15 +139,7 @@ private:
             std::unique_ptr<Yothalot::Racer::Result> result(new Yothalot::Racer::Result());
 
             // loop over all the elements
-            for (auto iter : output)
-            {
-                // switch through all the types and convert them accordingly
-                if (iter.second.isNull())         result->put(iter.first.stringValue(), nullptr);
-                else if (iter.second.isNumeric()) result->put(iter.first.stringValue(), iter.second.numericValue());
-                else if (iter.second.isBool())    result->put(iter.first.stringValue(), iter.second.numericValue());
-                else if (iter.second.isString())  result->put(iter.first.stringValue(), iter.second.stringValue());
-                else if (iter.second.isFloat())   result->put(iter.first.stringValue(), iter.second.floatValue());
-            }
+            for (auto iter : output) result->put(iter.first.stringValue(), toTuple(iter.second));
 
             // return the result
             return std::move(result);

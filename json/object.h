@@ -20,6 +20,7 @@
 #include "array.h"
 #include <map>
 #include <vector>
+#include <phpcpp.h>
 
 /**
  *  Set up namespace
@@ -324,6 +325,12 @@ public:
      *  @return Object
      */
     Object clone() const;
+
+    /**
+     *  Turn into a Php::Value
+     *  @return Php::Value
+     */
+    Php::Value phpValue() const;
 };
 
 /**

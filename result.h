@@ -115,26 +115,8 @@ public:
         // construct the output value, which is an array
         Php::Value output(Php::Type::Array);
 
-        // get the result object
-        auto result = _json.object("result");
-
-        // loop over all our keys
-        for (auto key : result.members())
-        {
-            // change all of them into Php::Value objects and add them
-            switch (result.type(key))
-            {
-            case JSON::Type::Null:    output.set(key, nullptr);             break;
-            case JSON::Type::Boolean: output.set(key, result.boolean(key)); break;
-            case JSON::Type::Decimal: output.set(key, result.decimal(key)); break;
-            case JSON::Type::Integer: output.set(key, result.integer(key)); break;
-            case JSON::Type::String:  output.set(key, result.c_str(key));   break;
-            default:                                                        break;
-            }
-        }
-
-        // return output
-        return output;
+        // turn our json object into a php value and return it
+        return _json.object("result").phpValue();
     }
 };
 

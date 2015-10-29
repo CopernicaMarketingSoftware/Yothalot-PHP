@@ -468,6 +468,36 @@ Object Object::clone() const
 }
 
 /**
+ *  Turn into a Php::Value
+ *  @return Php::Value
+ */
+Php::Value Object::phpValue() const
+{
+    // create our output value
+    Php::Value output;
+
+    // loop over all the keys
+    for (auto key : members())
+    {
+        // switch through all the types and add them to our php value
+        switch (type(key))
+        {
+        case Type::Null:    output.set(key, nullptr);                  break;
+        case Type::Boolean: output.set(key, boolean(key));             break;
+        case Type::Decimal: output.set(key, decimal(key));             break;
+        case Type::Integer: output.set(key, integer(key));             break;
+        case Type::String:  output.set(key, c_str(key));               break;
+        case Type::Array:   output.set(key, array(key).phpValue());    break;
+        case Type::Object:  output.set(key, object(key).phpValue());   break;
+        default:                                                       break;
+        }
+    }
+
+    // return our output
+    return output;
+}
+
+/**
  *  End of namespace
  */
 }

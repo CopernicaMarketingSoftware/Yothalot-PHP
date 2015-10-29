@@ -16,7 +16,9 @@
  *  Dependencies
  */
 #include "base.h"
+#include "type.h"
 #include <initializer_list>
+#include <phpcpp.h>
 
 /**
  *  Set up namespace
@@ -118,6 +120,14 @@ public:
      *  @return int
      */
     int size() const;
+
+    /**
+     *  Retrieve the type of the element at a certain position
+     *
+     *  @param  name    the name of the element to retrieve the type for
+     *  @return Type
+     */
+    Type type(int index) const;
 
     /**
      *  Check if the element at a certain position is a string
@@ -319,6 +329,11 @@ public:
      */
     Array clone() const;
 
+    /**
+     *  Turn into a Php::Value
+     *  @return Php::Value
+     */
+    Php::Value phpValue() const;
 };
 
 /**

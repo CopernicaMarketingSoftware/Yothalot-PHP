@@ -16,8 +16,6 @@
  *  Dependencies
  */
 #include <phpcpp.h>
-#include <reactcpp.h>
-#include <reactcpp/amqp.h>
 
 #include "tuplehelper.h"
 #include "core.h"
@@ -26,8 +24,7 @@
  *  Class definition
  */
 class Connection :
-    public Php::Base,
-    public React::AMQP::ConnectionHandler {
+    public Php::Base {
 private:
     /**
      *  Shared pointer to the core

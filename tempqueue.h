@@ -59,7 +59,7 @@ public:
         if (!core->connection()) throw std::runtime_error("Not connected to RabbitMQ");
 
         // we create a temporary channel for creating the queue
-        React::AMQP::Channel channel(core->connection());
+        AMQP::TcpChannel channel(core->connection());
 
         // flags for creating the queue
         auto flags = ::AMQP::autodelete|::AMQP::exclusive;
@@ -90,7 +90,7 @@ public:
         if (!_core->connection()) return;
 
         // special channel object needed for removing
-        React::AMQP::Channel channel(_core->connection());
+        AMQP::TcpChannel channel(_core->connection());
 
         // remove the queue from RabbitMQ
         channel.removeQueue(_name);
@@ -115,13 +115,13 @@ public:
         if (!_core->connection()) return _result;
 
         // we create a special channel to start the consumer
-        auto channel = std::make_shared<React::AMQP::Channel>(_core->connection());
+        auto channel = std::make_shared<AMQP::TcpChannel>(_core->connection());
 
         // empty result for now
         _result.clear();
 
         // start consuming from our temporary queue
-        channel->consume(_name).onReceived([this, channel](const ::AMQP::Message &message, uint64_t deliveryTag, bool redelivered) {
+        channel->consume(_name).onReceived([this, channel](const AMQP::Message &message, uint64_t deliveryTag, bool redelivered) {
 
             // assign the response
             _result.assign(message.body(), message.bodySize());

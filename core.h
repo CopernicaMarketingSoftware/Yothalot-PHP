@@ -21,11 +21,12 @@
 
 #include "json/object.h"
 #include "tuplehelper.h"
+#include "loop.h"
 
 /**
  *  Class definition
  */
-class Core : private React::AMQP::ConnectionHandler
+class Core : private AMQP::TcpHandler
 {
 private:
     /**
@@ -36,15 +37,15 @@ private:
 
     /**
      *  A thread loop that the actual connection will run on
-     *  @var  React::Loop
+     *  @var  Loop
      */
-    React::Loop _loop;
+    Loop _loop;
 
     /**
-     *  The underlying AMQP connection
-     *  @var  React::AMQP::Connection
+     *  The underlying TCP connection
+     *  @var  AMQP::TcpConnection
      */
-    std::unique_ptr<React::AMQP::Connection> _connection;
+    std::unique_ptr<AMQP::TcpConnection> _connection;
 
     /**
      *  The error that was discovered
@@ -57,7 +58,7 @@ private:
      *  @param  connection      The connection that entered the error state
      *  @param  message         Error message
      */
-    virtual void onError(React::AMQP::Connection *connection, const char *message) override
+    virtual void onError(AMQP::TcpConnection *connection, const char *message) override
     {
         // store the error
         _error.assign(message);
@@ -70,9 +71,9 @@ private:
      *  Called when connection is established
      *  @param  connection      The connection that can now be used
      */
-    virtual void onConnected(React::AMQP::Connection *connection) override
+    virtual void onConnected(AMQP::TcpConnection *connection) override
     {
-        // we can stop the event loop for the time being
+        // stop the loop
         _loop.stop();
     }
 
@@ -80,13 +81,27 @@ private:
      *  Callback called when connection is closed
      *  @param  connection      The connection that was closed and that is now unusable
      */
-    virtual void onClosed(React::AMQP::Connection *connection) override
+    virtual void onClosed(AMQP::TcpConnection *connection) override
     {
         // reset connection
         _connection = nullptr;
 
         // it is not necessary as the connection was the only item in the 
         // event loop, so the loop will stop anyway
+    }
+
+    /**
+     *  Monitor a filedescriptor for readability or writability
+     *  @param  connection  The TCP connection object that is reporting
+     *  @param  fd          The filedescriptor to be monitored
+     *  @param  flags       Should the object be monitored for readability or writability?
+     */
+    virtual void monitor(AMQP::TcpConnection *connection, int fd, int flags) override
+    {
+        std::cout << "monitor " << fd << " " << flags << std::endl;
+        
+        // add the filedescriptor to the loop
+        _loop.add(fd, flags);
     }
 
     /**
@@ -99,12 +114,12 @@ private:
         if (_connection) return true;
 
         // create the connection
-        _connection.reset(new React::AMQP::Connection(&_loop, this, std::string(_json.c_str("host")), 5672,
-                                                      ::AMQP::Login(std::string(_json.c_str("user")), std::string(_json.c_str("password"))),
-                                                      std::string(_json.c_str("vhost"))));
+        _connection.reset(new AMQP::TcpConnection(this, AMQP::Address(std::string(_json.c_str("host")), 5672,
+                                                  ::AMQP::Login(std::string(_json.c_str("user")), std::string(_json.c_str("password"))),
+                                                  std::string(_json.c_str("vhost")))));
 
         // go run the event loop until the connection is connected
-        _loop.run();
+        //_loop.run(_connection.get());
 
         // check if the connection still exists (connection will be reset by the
         // onError() function if the connection ran into a problem)
@@ -133,7 +148,7 @@ public:
      *  @throws std::runtime_error
      */
     Core(const std::string &host, const std::string &user, const std::string &password, const std::string &vhost, std::string &exchange, std::string &routingkey) :
-        _connection(new React::AMQP::Connection(&_loop, this, host, 5672, ::AMQP::Login(user, password), vhost))
+        _connection(new AMQP::TcpConnection(this, AMQP::Address(host, 5672, ::AMQP::Login(user, password), vhost)))
     {
         // store all properties in the JSON
         _json.set("host", host);
@@ -144,7 +159,7 @@ public:
         _json.set("routingkey", routingkey);
 
         // go run the event loop until the connection is connected
-        _loop.run();
+        _loop.run(_connection.get());
 
         // if the connection is set back to null, it means that the connection failed,
         // otherwise the connection is still in a valid state
@@ -173,7 +188,7 @@ public:
         _connection->close();
 
         // wait for the event loop to finish
-        _loop.run();
+        while (_connection) _loop.run(_connection.get());
     };
 
     /**
@@ -187,10 +202,13 @@ public:
         if (!connect()) return false;
 
         // create temporary channel, so that possible errors do not affect the connection
-        React::AMQP::Channel channel(_connection.get());
+        AMQP::TcpChannel channel(_connection.get());
 
         // publish the json
         channel.publish(_json.c_str("exchange"), _json.c_str("routingkey"), json.toString());
+
+        // do a single step, to hopefully send the message..
+        //_loop.step(_connection.get());
 
         // done
         return true;
@@ -209,7 +227,16 @@ public:
         // we're working in such a way that all the channels drop away the second
         // they're no longer needed, meaning that we've pushed/retrieved everything
         // from rabbitmq the second we have no channels left
-        while (_connection->channels() > 0) _loop.step();
+        while (_connection->channels() > 0) _loop.step(_connection.get());
+    }
+
+    /**
+     *  Stop the event loop
+     */
+    void stop()
+    {
+        // pass on to the loop
+        _loop.stop();
     }
 
     /**
@@ -218,23 +245,14 @@ public:
     void run()
     {
         // pass on to the loop
-        _loop.run();
-    }
-
-    /**
-     *  Stop the event loop
-     */
-    void stop()
-    {
-        // pass on
-        _loop.stop();
+        _loop.run(_connection.get());
     }
 
     /**
      *  Expose the connection 
      *  Returns nullptr on error
      */
-    React::AMQP::Connection *connection()
+    AMQP::TcpConnection *connection()
     {
         // connect object
         if (!connect()) return nullptr;

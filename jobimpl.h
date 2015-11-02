@@ -133,8 +133,7 @@ public:
      *  @throws std::runtime_error
      */
     JobImpl(const JSON::Object &data) :
-        _json(data.object("job")),
-        _core(std::make_shared<Core>(data.object("connection")))
+        _json(data.object("job")) // we don't create a connection here on purpose, as we just don't need one
     {
         // does the input json contain a specific directory?
         if (!_json.directory()) return;

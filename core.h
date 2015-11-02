@@ -98,8 +98,6 @@ private:
      */
     virtual void monitor(AMQP::TcpConnection *connection, int fd, int flags) override
     {
-        std::cout << "monitor " << fd << " " << flags << std::endl;
-        
         // add the filedescriptor to the loop
         _loop.add(fd, flags);
     }

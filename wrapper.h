@@ -121,7 +121,7 @@ private:
      *  @param  size        Size of the value
      *  @return std::unique_ptr<Result>    In case you don't have a result please return nullptr
      */
-    virtual std::unique_ptr<Yothalot::Racer::Result> process(const char *data, size_t size) override
+    virtual int process(const char *data, size_t size) override
     {
         // make sure we're not a MapReduce object
         if (!_object.instanceOf("Yothalot\\Racer")) Php::error << "Racer method called on an object not of type Yothalot\\Racer" << std::flush;
@@ -132,17 +132,14 @@ private:
             // forward the map call to php, don't forget to unserialize the data though
             auto output = _object.call("process", Php::call("unserialize", Php::call("base64_decode", Php::Value(data, size))));
 
-            // we only work when we get either an array or an object as output
-            if (!output.isArray() && !output.isObject()) return nullptr;
-
-            // create our output
-            std::unique_ptr<Yothalot::Racer::Result> result(new Yothalot::Racer::Result());
-
-            // loop over all the elements
-            for (auto iter : output) result->put(iter.first.stringValue(), toTuple(iter.second));
+            // nothing special, just continue
+            if (output.isNull()) return 0;
 
             // return the result
-            return std::move(result);
+            std::cout << Php::call("base64_encode", Php::call("serialize", output));
+
+            // and say we're done correctly.
+            return 0;
         }
         catch (const Php::Exception &exception)
         {
@@ -151,7 +148,7 @@ private:
         }
 
         // unreachable..
-        return nullptr;
+        return -1;
     }
 
 public:

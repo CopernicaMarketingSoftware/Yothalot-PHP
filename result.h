@@ -112,11 +112,8 @@ public:
      */
     Php::Value result() const
     {
-        // construct the output value, which is an array
-        Php::Value output(Php::Type::Array);
-
-        // turn our json object into a php value and return it
-        return _json.object("result").phpValue();
+        // unserialize the base64 encoded object from stdout
+        return Php::call("unserialize", Php::call("base64_decode", _json.object("winner").c_str("stdout")));
     }
 };
 

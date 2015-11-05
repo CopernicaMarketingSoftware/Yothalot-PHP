@@ -98,6 +98,31 @@ private:
         virtual ~Executable() {}
     };
 
+    /**
+     *  Class definition to create a simple stdin for racers
+     */
+    class Stdin : public std::string
+    {
+    public:
+        /**
+         *  Constructor
+         */
+        Stdin(const Php::Value &algo)
+        {
+            // create a simple php array with the includes and the algorithm object
+            Php::Value input(Php::Type::Array);
+            input[0] = algo.call("includes");
+            input[1] = Php::call("serialize", algo); // this one is serialized twice as we're unable to unserialize it right away
+                                                     // due to the class that doesn't exist yet due to not yet included files
+
+            // assign the serialized input array base64 encoded to this string
+            assign(Php::call("base64_encode", Php::call("serialize", input)).stringValue());
+
+            // append some newlines as we should be followed by data
+            append("\n\n");
+        }
+    };
+
 public:
     /**
      *  Constructor
@@ -126,19 +151,10 @@ public:
         // in case we are a racer we just set an executable manually etc.
         else if (algo.instanceOf("Yothalot\\Racer"))
         {
-            // create an object with the two properties
-            Php::Value input(Php::Type::Array);
-            input[0] = algo.call("includes");
-            input[1] = Php::call("serialize", algo); // this one is serialized twice as we're unable to
-                                                     // unserialize it the first time as the includes aren't included yet at that point
-
-            // serialize the input
-            auto serialized = Php::call("base64_encode", Php::call("serialize", input));
-
             // set the json properties
             set("executable", "php");
             set("arguments", JSON::Array({"-r", "exit(YothalotInit('run'));"}));
-            set("stdin", serialized.stringValue() + "\n\n");
+            set("stdin", Stdin(algo));
         }
     }
 

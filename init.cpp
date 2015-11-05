@@ -161,24 +161,59 @@ static int write(Php::Value &&object, Yothalot::Stdin &input)
 }
 
 /**
+ *  Actually read the standard input
+ *  @return std::string
+ */
+static std::string readStdin()
+{
+    // see http://stackoverflow.com/questions/201992/how-to-read-until-eof-from-cin-in-c
+    // don't skip the whitespace while reading
+    std::cin >> std::noskipws;
+
+    // use stream iterators to copy the stream to a string
+    std::istream_iterator<char> it(std::cin);
+    std::istream_iterator<char> end;
+
+    // create the string and return it
+    return std::string(it, end);
+}
+
+/**
  *  Run the racer
- *  @param  object      User supplied Race object
- *  @param  input       All the input
  *  @return int
  */
-static int run(Php::Value &&object, Yothalot::Stdin &input)
+static int run()
 {
     // prevent exceptions
     try
     {
+        // read from stdin
+        auto stdin = readStdin();
+
+        // look for the \n\n separator
+        auto separator = stdin.find("\n\n");
+
         // prevent PHP output during race algorithm
         Php::call("ob_start");
 
-        // wrap all input data in a php string variable (should we serialize here?)
-        auto data = Php::call("unserialize", Php::call("base64_decode", Php::Value(input.data(), strlen(input.data()))));
+        // unserialize the first part of the stdin
+        auto unserialized = Php::call("unserialize", Php::call("base64_decode", stdin.substr(0, separator)));
+
+        // store the includes
+        auto includes = unserialized.get(0);
+
+        // loop over all our includes and include all of them once.
+        for (int i = 0; i < includes.size(); ++i)
+        {
+            // include the PHP file (this could cause a PHP fatal error)
+            if (!Php::include_once(includes.get(i).rawValue())) Php::error << "Failed to include " << includes.get(i) << std::flush;
+        }
+
+        // unserialize the inner object
+        auto object = Php::call("unserialize", unserialized.get(1));
 
         // call the process method
-        auto result = object.call("process", data);
+        auto result = object.call("process", Php::call("unserialize", Php::call("base64_decode", stdin.substr(separator + 2))));
 
         // if there's no output, the job generated no output
         if (result.isNull()) return 0;
@@ -218,6 +253,9 @@ Php::Value yothalotInit(Php::Parameters &params)
     Php::error_reporting(Php::Error::All);
     Php::call("ini_set", "error_log", nullptr); // disable the error_log
     Php::call("ini_set", "display_errors", "stderr");
+
+    // the run is the very fist task we may run
+    if (strcasecmp(params[0].rawValue(), "run") == 0) return run();
 
     // read all data from input
     Yothalot::Stdin input;
@@ -267,7 +305,6 @@ Php::Value yothalotInit(Php::Parameters &params)
     if      (strcasecmp(params[0].rawValue(), "mapper")    == 0) return map(std::move(unserialized), input);
     else if (strcasecmp(params[0].rawValue(), "reducer")   == 0) return reduce(std::move(unserialized), input);
     else if (strcasecmp(params[0].rawValue(), "finalizer") == 0) return write(std::move(unserialized), input);
-    else if (strcasecmp(params[0].rawValue(), "run")       == 0) return run(std::move(unserialized), input);
 
     // program was started in unknown mode
     Php::error << "Unrecognized input mode " << params[0] << std::flush;

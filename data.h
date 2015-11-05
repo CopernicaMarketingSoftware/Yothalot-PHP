@@ -105,19 +105,19 @@ public:
      */
     Data(const Php::Value &algo)
     {
-        // serialize the object
-        auto serialized = Php::call("base64_encode", Php::call("serialize", algo).stringValue()).stringValue();
-
-        // construct the includes
-        Includes includes(algo);
-
-        // set default limits
-        set("processes", 20);
-        set("input", _input);
-
         // in case we're a map reduce algorithm we set a modulo, mapper, reducer and writer
         if (algo.instanceOf("Yothalot\\MapReduce"))
         {
+            // serialize the object
+            auto serialized = Php::call("base64_encode", Php::call("serialize", algo)).stringValue();
+
+            // construct the includes
+            Includes includes(algo);
+
+            // set default limits
+            set("processes", 20);
+            set("input", _input);
+
             set("modulo", 1);
             set("mapper", Executable("mapper", includes, serialized));
             set("reducer", Executable("reducer", includes, serialized));
@@ -126,10 +126,19 @@ public:
         // in case we are a racer we just set an executable manually etc.
         else if (algo.instanceOf("Yothalot\\Racer"))
         {
+            // create an object with the two properties
+            Php::Value input(Php::Type::Array);
+            input[0] = algo.call("includes");
+            input[1] = Php::call("serialize", algo); // this one is serialized twice as we're unable to
+                                                     // unserialize it the first time as the includes aren't included yet at that point
+
+            // serialize the input
+            auto serialized = Php::call("base64_encode", Php::call("serialize", input));
+
+            // set the json properties
             set("executable", "php");
             set("arguments", JSON::Array({"-r", "exit(YothalotInit('run'));"}));
-            set("object", serialized);
-            set("includes", includes);
+            set("stdin", serialized.stringValue() + "\n\n");
         }
     }
 

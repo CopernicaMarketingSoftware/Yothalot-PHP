@@ -29,7 +29,6 @@
  */
 class Wrapper :
     public Yothalot::MapReduce,
-    public Yothalot::Racer,
     public TupleHelper
 {
 private:
@@ -40,7 +39,7 @@ private:
     std::unique_ptr<Yothalot::SubTask> _task;
 
     /**
-     *  The PHP "Yothalot\MapReduce" or "Yothalot\Racer" object that holds the implementation to all methods
+     *  The PHP "Yothalot\MapReduce" object that holds the implementation to all methods
      *  @var Php::Object
      */
     Php::Object _object;
@@ -52,9 +51,6 @@ private:
      */
     virtual void map(const char *data, size_t size, Yothalot::Reducer &reducer) override
     {
-        // make sure we're not a Racer
-        if (!_object.instanceOf("Yothalot\\MapReduce")) Php::error << "MapReduce method called on an object not of type Yothalot\\MapReduce" << std::flush;
-
         // prevent PHP exceptions from bubbling up
         try
         {
@@ -76,9 +72,6 @@ private:
      */
     virtual void reduce(const Yothalot::Key &key, const Yothalot::Values &values, Yothalot::Writer &writer) override
     {
-        // make sure we're not a Racer
-        if (!_object.instanceOf("Yothalot\\MapReduce")) Php::error << "MapReduce method called on an object not of type Yothalot\\MapReduce" << std::flush;
-
         // prevent PHP exceptions from bubbling up
         try
         {
@@ -99,9 +92,6 @@ private:
      */
     virtual void write(const Yothalot::Key &key, const Yothalot::Value &value) override
     {
-        // make sure we're not a Racer
-        if (!_object.instanceOf("Yothalot\\MapReduce")) Php::error << "MapReduce method called on an object not of type Yothalot\\MapReduce" << std::flush;
-
         // prevent PHP exceptions from bubbling up
         try
         {
@@ -115,42 +105,6 @@ private:
         }
     }
 
-    /**
-     *  Function to map a log-record to a key/value pair
-     *  @param  value       The value to map
-     *  @param  size        Size of the value
-     *  @return std::unique_ptr<Result>    In case you don't have a result please return nullptr
-     */
-    virtual int process(const char *data, size_t size) override
-    {
-        // make sure we're not a MapReduce object
-        if (!_object.instanceOf("Yothalot\\Racer")) Php::error << "Racer method called on an object not of type Yothalot\\Racer" << std::flush;
-
-        // prevent PHP exceptions from bubbling up
-        try
-        {
-            // forward the map call to php, don't forget to unserialize the data though
-            auto output = _object.call("process", Php::call("unserialize", Php::call("base64_decode", Php::Value(data, size))));
-
-            // nothing special, just continue
-            if (output.isNull()) return 0;
-
-            // return the result
-            std::cout << Php::call("base64_encode", Php::call("serialize", output));
-
-            // and say we're done correctly.
-            return 0;
-        }
-        catch (const Php::Exception &exception)
-        {
-            // this is a big problem!
-            Php::error << exception.what() << std::flush;
-        }
-
-        // unreachable..
-        return -1;
-    }
-
 public:
     /**
      *  Constructor
@@ -159,7 +113,7 @@ public:
     Wrapper(Php::Object &&object) : _object(std::move(object))
     {
         // make sure we're the correct type
-        if (!_object.instanceOf("Yothalot\\MapReduce") && !_object.instanceOf("Yothalot\\Racer")) Php::error << "Failed to unserialize to Yothalot\\MapReduce or Yothalot\\Racer object" << std::flush;
+        if (!_object.instanceOf("Yothalot\\MapReduce")) Php::error << "Failed to unserialize to Yothalot\\MapReduce object" << std::flush;
     }
 
     /**

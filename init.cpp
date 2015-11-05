@@ -18,14 +18,18 @@
 
 /**
  *  Run the mapper
- *  @param  mapreduce       MapReduce implementaion
+ *  @param  object          User supplied MapReduce object
  *  @param  input           All the input
+ *  @return int
  */
-static void map(Yothalot::MapReduce *mapreduce, Yothalot::Stdin &input)
+static int map(Php::Value &&object, Yothalot::Stdin &input)
 {
     // prevent exceptions
     try
     {
+        // wrap the php object
+        Wrapper mapreduce(std::move(object));
+
         // prevent PHP output during the map/reduce algorithm
         Php::call("ob_start");
 
@@ -36,7 +40,7 @@ static void map(Yothalot::MapReduce *mapreduce, Yothalot::Stdin &input)
         if (!input.directory()) throw std::runtime_error("No output directory is available");
 
         // create the task
-        Yothalot::MapTask task(base(), mapreduce, input.modulo(), input.directory());
+        Yothalot::MapTask task(base(), &mapreduce, input.modulo(), input.directory());
 
         // add the data to process
         task.process(input.data(), strlen(input.data()));
@@ -49,24 +53,34 @@ static void map(Yothalot::MapReduce *mapreduce, Yothalot::Stdin &input)
 
         // show output of mapper process
         std::cout << task.output();
+
+        // done
+        return 0;
     }
     catch (const std::runtime_error &error)
     {
         // report error
         Php::error << "Mapper error: " << error.what() << std::flush;
+
+        // failure
+        return -1;
     }
 }
 
 /**
  *  Run the reducer
- *  @param  mapreduce       MapReduce implementaion
+ *  @param  object          User supplied MapReduce object
  *  @param  input           All the input
+ *  @return int
  */
-static void reduce(Yothalot::MapReduce *mapreduce, Yothalot::Stdin &input)
+static int reduce(Php::Value &&object, Yothalot::Stdin &input)
 {
     // prevent exceptions
     try
     {
+        // wrap php object
+        Wrapper mapreduce(std::move(object));
+
         // prevent PHP output during the map/reduce algorithm
         Php::call("ob_start");
 
@@ -74,7 +88,7 @@ static void reduce(Yothalot::MapReduce *mapreduce, Yothalot::Stdin &input)
         if (!input.directory()) throw std::runtime_error("No output directory is available");
 
         // create the task
-        Yothalot::ReduceTask task(base(), mapreduce, input.index(), input.directory());
+        Yothalot::ReduceTask task(base(), &mapreduce, input.index(), input.directory());
 
         // distribute the input files
         input.distribute(&task);
@@ -87,29 +101,39 @@ static void reduce(Yothalot::MapReduce *mapreduce, Yothalot::Stdin &input)
 
         // show output of mapper process
         std::cout << task.output();
+
+        // done
+        return 0;
     }
     catch (const std::runtime_error &error)
     {
         // report error
         Php::error << "Reducer error: " << error.what() << std::flush;
+
+        // failure
+        return -1;
     }
 }
 
 /**
  *  Run the writer/finalizer
- *  @param  mapreduce       MapReduce implementaion
+ *  @param  object          User supplied MapReduce object
  *  @param  input           All the input
+ *  @return int
  */
-static void write(Yothalot::MapReduce *mapreduce, Yothalot::Stdin &input)
+static int write(Php::Value &&object, Yothalot::Stdin &input)
 {
     // prevent exceptions
     try
     {
+        // wrap php object
+        Wrapper mapreduce(std::move(object));
+
         // prevent PHP output during the map/reduce algorithm
         Php::call("ob_start");
 
         // create the task
-        Yothalot::WriteTask task(base(), mapreduce);
+        Yothalot::WriteTask task(base(), &mapreduce);
 
         // distribute the input files
         input.distribute(&task);
@@ -122,20 +146,27 @@ static void write(Yothalot::MapReduce *mapreduce, Yothalot::Stdin &input)
 
         // show output of mapper process
         std::cout << task.output();
+
+        // done
+        return 0;
     }
     catch (const std::runtime_error &error)
     {
         // report error
         Php::error << "Writer error: " << error.what() << std::flush;
+
+        // failure
+        return -1;
     }
 }
 
 /**
  *  Run the racer
- *  @param  racer       The racer algorithm
+ *  @param  object      User supplied Race object
  *  @param  input       All the input
+ *  @return int
  */
-static void race(Yothalot::Racer *racer, Yothalot::Stdin &input)
+static int run(Php::Value &&object, Yothalot::Stdin &input)
 {
     // prevent exceptions
     try
@@ -143,11 +174,14 @@ static void race(Yothalot::Racer *racer, Yothalot::Stdin &input)
         // prevent PHP output during race algorithm
         Php::call("ob_start");
 
-        // create the task
-        Yothalot::RaceTask task(base(), racer);
+        // wrap all input data in a php string variable (should we serialize here?)
+        auto data = Php::call("unserialize", Php::call("base64_decode", Php::Value(input.data(), strlen(input.data()))));
 
-        // add the data to process
-        task.process(input.data(), strlen(input.data()));
+        // call the process method
+        auto result = object.call("process", data);
+
+        // if there's no output, the job generated no output
+        if (result.isNull()) return 0;
 
         // capture the output
         std::string output = Php::call("ob_get_clean");
@@ -155,12 +189,19 @@ static void race(Yothalot::Racer *racer, Yothalot::Stdin &input)
         // did we have output?
         if (output.size() > 0) throw std::runtime_error(output);
 
-        // show output of mapper process
-        std::cout << task.output();
+        // serialize the output, so that it can be unserialized at the caller side
+        std::cout << Php::call("base64_encode", Php::call("serialize", result));
+
+        // done
+        return 0;
     }
     catch (const std::runtime_error &error)
     {
-        Php::error << "Race error: " << error.what() << std::flush;
+        // report the error
+        Php::error << "Unexpected output: " << error.what() << std::flush;
+
+        // failure
+        return -1;
     }
 }
 
@@ -220,19 +261,17 @@ Php::Value yothalotInit(Php::Parameters &params)
     auto output = Php::call("ob_get_clean");
 
     // we expect the output to be empty
-    if (output.size() > 0) Php::error << "Output was generated when unserializing Yothalot\\MapReduce object (" << output << ")" << std::flush;
-
-    // create a wrapper for the mapreduce/racer task
-    // this will throw a Php::error in case it is invalid
-    Wrapper wrapper(std::move(unserialized));
+    if (output.size() > 0) Php::error << "Output was generated when unserializing object (" << output << ")" << std::flush;
 
     // check the type of task to run
-    if      (strcasecmp(params[0].rawValue(), "mapper")    == 0) map(&wrapper, input);
-    else if (strcasecmp(params[0].rawValue(), "reducer")   == 0) reduce(&wrapper, input);
-    else if (strcasecmp(params[0].rawValue(), "finalizer") == 0) write(&wrapper, input);
-    else if (strcasecmp(params[0].rawValue(), "race")      == 0) race(&wrapper, input);
-    else    Php::error << "Unrecognized input mode " << params[0] << std::flush;
+    if      (strcasecmp(params[0].rawValue(), "mapper")    == 0) return map(std::move(unserialized), input);
+    else if (strcasecmp(params[0].rawValue(), "reducer")   == 0) return reduce(std::move(unserialized), input);
+    else if (strcasecmp(params[0].rawValue(), "finalizer") == 0) return write(std::move(unserialized), input);
+    else if (strcasecmp(params[0].rawValue(), "run")       == 0) return run(std::move(unserialized), input);
 
-    // done, all is ok
-    return 0;
+    // program was started in unknown mode
+    Php::error << "Unrecognized input mode " << params[0] << std::flush;
+
+    // done with failure
+    return -1;
 }

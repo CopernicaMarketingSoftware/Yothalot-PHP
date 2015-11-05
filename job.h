@@ -205,7 +205,7 @@ public:
     Php::Value add(Php::Parameters &params)
     {
         // serialize and base64 encode the data to ensure that no null character appear in it
-        auto data = Php::call("base64_encode", Php::call("serialize", params[0].stringValue())).stringValue();
+        auto data = Php::call("base64_encode", Php::call("serialize", params[0])).stringValue();
 
         // pass on to the implementation object
         if (!_impl->add(data)) return nullptr;
@@ -222,7 +222,7 @@ public:
     Php::Value file(Php::Parameters &params)
     {
        // serialize and base64 encode the data to ensure that no null character appear in it
-        auto data = Php::call("base64_encode", Php::call("serialize", params[0].stringValue())).stringValue();
+        auto data = Php::call("base64_encode", Php::call("serialize", params[0])).stringValue();
 
         // get the filename
         auto filename = params[(params.size() >= 2) ? 1 : 0].stringValue();
@@ -242,7 +242,7 @@ public:
     Php::Value server(Php::Parameters &params)
     {
         // serialize and base64 encode the data to ensure tha no null character appear in it
-        auto data = Php::call("base64_encode", Php::call("serialize", params[0].stringValue())).stringValue();
+        auto data = Php::call("base64_encode", Php::call("serialize", params[0])).stringValue();
 
         // get the servername
         auto servername = params[(params.size() >= 2) ? 1 : 0].stringValue();

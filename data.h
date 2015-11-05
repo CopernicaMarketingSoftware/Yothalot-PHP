@@ -127,7 +127,7 @@ public:
         else if (algo.instanceOf("Yothalot\\Racer"))
         {
             set("executable", "php");
-            set("arguments", JSON::Array({"-r", "exit(YothalotInit('race'));"}));
+            set("arguments", JSON::Array({"-r", "exit(YothalotInit('run'));"}));
             set("object", serialized);
             set("includes", includes);
         }

@@ -143,7 +143,7 @@ public:
     Php::Value maxfinalizers(Php::Parameters &params)
     {
         // pass this to the implementation
-        if(!_impl->maxfinalizers(std::max(1L, params[0].numericValue()))) return nullptr;
+        if (!_impl->maxfinalizers(std::max(1L, params[0].numericValue()))) return nullptr;
 
         // allow chaining
         return this;

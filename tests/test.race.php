@@ -13,13 +13,12 @@
 require_once('Race.php');
 
 // Create an instance of the WordCount algorithm
-$test = new MyRacer("test");
+$test = new MyRace("test");
 
 // create the connection
 $master = new Yothalot\Connection(array(
     "host"  =>  "localhost",
     "vhost" =>  "gluster",
-    "routingkey" => "racer"
 ));
 
 // create the new job

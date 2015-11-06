@@ -87,7 +87,7 @@ extern "C" {
         // register the methods on our php classes
         job.method("__construct", &Job::__construct, {
             Php::ByVal("connection", "Yothalot\\Connection"),
-            Php::ByVal("mapreduce") // This should be either Yothalot\MapReduce or Yothalot\Racer
+            Php::ByVal("algorithm") // This should be either Yothalot\MapReduce or Yothalot\Race
         }).method("add", &Job::add, {
             Php::ByVal("data", Php::Type::String)
         }).method("file", &Job::file, {
@@ -185,11 +185,11 @@ extern "C" {
             Php::ByVal("value", Php::Type::Null)
         }).method("includes");
 
-        // create the racer interface
-        Php::Interface racer("Racer");
+        // create the race interface
+        Php::Interface race("Race");
 
         // register the interface methods
-        racer.method("process", {
+        race.method("process", {
             Php::ByVal("data", Php::Type::String)
         }).method("includes");
 
@@ -201,7 +201,7 @@ extern "C" {
         ns.add(std::move(job));
         ns.add(std::move(path));
         ns.add(std::move(mapreduce));
-        ns.add(std::move(racer));
+        ns.add(std::move(race));
         ns.add(std::move(input));
         ns.add(std::move(output));
         ns.add(std::move(record));

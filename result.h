@@ -107,7 +107,7 @@ public:
     }
 
     /**
-     *  Get the result, only used for racers atm
+     *  Get the result, only used for races and regular jobs
      *  @return Php::Value
      */
     Php::Value result() const

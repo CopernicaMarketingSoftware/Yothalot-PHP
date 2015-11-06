@@ -7,7 +7,7 @@
  *  @documentation private
  */
 
-class MyRacer implements Yothalot\Racer
+class MyRace implements Yothalot\Race
 {
     private $output;
 

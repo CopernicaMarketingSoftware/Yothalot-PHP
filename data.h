@@ -99,7 +99,7 @@ private:
     };
 
     /**
-     *  Class definition to create a simple stdin for racers
+     *  Class definition to create a simple stdin for races
      */
     class Stdin : public std::string
     {
@@ -148,8 +148,8 @@ public:
             set("reducer", Executable("reducer", includes, serialized));
             set("finalizer", Executable("finalizer", includes, serialized));
         }
-        // in case we are a racer we just set an executable manually etc.
-        else if (algo.instanceOf("Yothalot\\Racer"))
+        // in case we are a race we just set an executable manually etc.
+        else if (algo.instanceOf("Yothalot\\Race"))
         {
             // set the json properties
             set("executable", "php");

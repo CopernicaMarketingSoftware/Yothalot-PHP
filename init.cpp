@@ -179,7 +179,8 @@ static std::string readStdin()
 }
 
 /**
- *  Run the racer
+ *  Run a regular job (or a job that is part of a race, which is basically identical
+ *  to a race job)
  *  @return int
  */
 static int run()

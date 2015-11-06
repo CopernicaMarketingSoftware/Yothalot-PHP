@@ -33,6 +33,15 @@ private:
     JSON::Array _input;
 
     /**
+     *  What sort of algorithm are we going to run?
+     */
+    enum {
+        algorithm_mapreduce,
+        algorithm_race,
+        algorithm_job
+    } _algorithm = algorithm_job;
+
+    /**
      *  Helper class that creates an array with the to-be-included files
      */
     class Includes : public JSON::Array
@@ -142,11 +151,13 @@ public:
             // set default limits
             set("processes", 20);
             set("input", _input);
-
             set("modulo", 1);
             set("mapper", Executable("mapper", includes, serialized));
             set("reducer", Executable("reducer", includes, serialized));
             set("finalizer", Executable("finalizer", includes, serialized));
+            
+            // remember algorithm type
+            _algorithm = algorithm_mapreduce;
         }
         // in case we are a race we just set an executable manually etc.
         else if (algo.instanceOf("Yothalot\\Race"))
@@ -155,6 +166,9 @@ public:
             set("executable", "php");
             set("arguments", JSON::Array({"-r", "exit(YothalotInit('run'));"}));
             set("stdin", Stdin(algo));
+
+            // remember algorithm type
+            _algorithm = algorithm_race;
         }
     }
 
@@ -170,6 +184,20 @@ public:
      *  Destructor
      */
     virtual ~Data() {}
+
+    /**
+     *  Publish the data to a connection
+     *  @param  connection
+     */
+    bool publish(Core *connection) const
+    {
+        switch (_algorithm) {
+        case algorithm_mapreduce:   return connection->mapreduce(*this);
+        case algorithm_race:        return connection->race(*this);
+        case algorithm_job:         return connection->job(*this);
+        default:                    return false;
+        }
+    }
 
     /**
      *  The directory that is set in the data
@@ -220,6 +248,10 @@ public:
         object("reducer").object("limit").set("processes", value);
     }
 
+    /**
+     *  Update max number of finalizers
+     *  @param  value
+     */
     void maxfinalizers(int value)
     {
         // update JSON

@@ -414,7 +414,7 @@ public:
             _json.tempqueue(_tempqueue->name());
 
             // now we can publish the job JSON data to the RabbitMQ server
-            if (_core->publish(_json)) return _started = true;
+            if (_json.publish(_core.get())) return _started = true;
 
             // the weird situation is that we can not connect to RabbitMQ...
             // (really weird because we did manage to create the temp queue...)
@@ -482,7 +482,7 @@ public:
         if (_started) return true;
 
         // if the job was not yet started, we should do that now
-        if (!_core->publish(_json)) return false;
+        if (!_json.publish(_core.get())) return false;
 
         // mark job as started
         return _started = true;

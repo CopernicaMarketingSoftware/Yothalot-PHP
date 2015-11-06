@@ -141,11 +141,13 @@ public:
      *  @param  password
      *  @param  vhost
      *  @param  exchange
-     *  @param  routingkey
+     *  @param  mapreduce
+     *  @param  races
+     *  @param  jobs
      *
      *  @throws std::runtime_error
      */
-    Core(const std::string &host, const std::string &user, const std::string &password, const std::string &vhost, std::string &exchange, std::string &routingkey) :
+    Core(const std::string &host, const std::string &user, const std::string &password, const std::string &vhost, const std::string &exchange, const std::string &mapreduce, const std::string &races, const std::string &jobs) :
         _connection(new AMQP::TcpConnection(this, AMQP::Address(host, 5672, ::AMQP::Login(user, password), vhost)))
     {
         // store all properties in the JSON
@@ -154,7 +156,9 @@ public:
         _json.set("password", password);
         _json.set("vhost", vhost);
         _json.set("exchange", exchange);
-        _json.set("routingkey", routingkey);
+        _json.set("mapreduce", mapreduce);
+        _json.set("races", races);
+        _json.set("jobs", jobs);
 
         // go run the event loop until the connection is connected
         _loop.run(_connection.get());
@@ -190,11 +194,45 @@ public:
     };
 
     /**
-     *  Method to publish a JSON encoded message to the queue
-     *  @param  json
+     *  Method to publish a JSON encoded message to the mapreduce queue
+     *  @param  json        The JSON data to be published
      *  @return bool
      */
-    bool publish(const JSON::Object &json)
+    bool mapreduce(const JSON::Object &json)
+    {
+        // publish to the mapreduce queue
+        return publish(_json.c_str("mapreduce"), json);
+    }
+
+    /**
+     *  Method to publish a JSON encoded message to the race queue
+     *  @param  json        The JSON data to be published
+     *  @return bool
+     */
+    bool race(const JSON::Object &json)
+    {
+        // publish to the race queue
+        return publish(_json.c_str("races"), json);
+    }
+
+    /**
+     *  Method to publish a JSON encoded message to the jobs queue
+     *  @param  json        The JSON data to be published
+     *  @return bool
+     */
+    bool job(const JSON::Object &json)
+    {
+        // publish to the mapreduce queue
+        return publish(_json.c_str("jobs"), json);
+    }
+
+    /**
+     *  Method to publish a JSON encoded message to the queue
+     *  @param  queue       The name of the queue to publish to
+     *  @param  json        The JSON data to be published
+     *  @return bool
+     */
+    bool publish(const char *queue, const JSON::Object &json)
     {
         // create the connection to the RabbitMQ server
         if (!connect()) return false;
@@ -203,7 +241,7 @@ public:
         AMQP::TcpChannel channel(_connection.get());
 
         // publish the json
-        channel.publish(_json.c_str("exchange"), _json.c_str("routingkey"), json.toString());
+        channel.publish(_json.c_str("exchange"), queue, json.toString());
 
         // do a single step, to hopefully send the message..
         //_loop.step(_connection.get());

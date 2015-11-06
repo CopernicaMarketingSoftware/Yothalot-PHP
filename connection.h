@@ -58,13 +58,15 @@ public:
         std::string password = (param.contains("password") ? param["password"] : "guest");
         std::string vhost = (param.contains("vhost") ? param["vhost"] : "/");
         std::string exchange = (param.contains("exchange") ? param["exchange"] : "");
-        std::string routingkey = (param.contains("routingkey") ? param["routingkey"] : "mapreduce");
+        std::string mapreduce = (param.contains("mapreduce") ? param["mapreduce"] : "mapreduce");
+        std::string races = (param.contains("races") ? param["races"] : "races");
+        std::string jobs = (param.contains("jobs") ? param["jobs"] : "jobs");
 
         // creating a connection could throw
         try
         {
             // create the actual connection
-            _core= std::make_shared<Core>(host, user, password, vhost, exchange, routingkey);
+            _core= std::make_shared<Core>(host, user, password, vhost, exchange, mapreduce, races, jobs);
         }
         catch (const std::runtime_error &error)
         {

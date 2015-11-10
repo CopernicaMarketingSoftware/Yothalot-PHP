@@ -189,7 +189,7 @@ Php::Value yothalotInit(Php::Parameters &params)
     if (strcasecmp(params[0].rawValue(), "run") == 0) result = run(input);
 
     // check the type of task to run that is part of the mapreduce algorithm
-    // @todo fix modulo setting
+    // @todo fix modulo setting (modulo can be found in $argv[$argc-1])
     if (strcasecmp(params[0].rawValue(), "mapper")    == 0) result = map(input, params[1].numericValue());
     if (strcasecmp(params[0].rawValue(), "reducer")   == 0) result = reduce(input);
     if (strcasecmp(params[0].rawValue(), "finalizer") == 0) result = write(input);

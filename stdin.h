@@ -61,19 +61,22 @@ public:
         // unserialize the first part of the stdin
         Php::Value unserialized(Php::call("unserialize", Php::call("base64_decode", Php::Value(_data.data(), separator))));
 
-        // store the includes
-        // @todo fix this
-        Php::Value includes(unserialized[0]);
+        // store the includes and the actual object
+        Php::Value includes = unserialized[0];
+        Php::Value object = unserialized[1];
 
         // loop over all our includes and call require_once with all of them
         for (int i = 0; i < includes.size(); ++i)
         {
+            // the file to include
+            Php::Value path = includes[i];
+            
             // include the PHP file (this could cause a PHP fatal error)
-            if (!Php::include_once(includes[i])) Php::error << "Failed to include " << includes[i] << std::flush;
+            if (!Php::include_once(path.stringValue())) Php::error << "Failed to include " << path << std::flush;
         }
 
         // unserialize the inner object
-        _object = Php::call("unserialize", unserialized.get(1));
+        _object = Php::call("unserialize", object);
     }
     
     /**

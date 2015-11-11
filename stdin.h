@@ -34,7 +34,7 @@ private:
 
 public:
     /**
-     *  Constructor
+     *  Constructor that reads input and turns it into a 
      */
     Stdin()
     {
@@ -63,7 +63,7 @@ public:
 
         // store the includes and the actual object
         Php::Value includes = unserialized[0];
-        Php::Value object = unserialized[1];
+        Php::Value serializedObject = unserialized[1];
 
         // loop over all our includes and call require_once with all of them
         for (int i = 0; i < includes.size(); ++i)
@@ -76,7 +76,7 @@ public:
         }
 
         // unserialize the inner object
-        _object = Php::call("unserialize", object);
+        _object = Php::call("unserialize", serializedObject);
     }
     
     /**

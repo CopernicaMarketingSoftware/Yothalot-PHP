@@ -42,40 +42,6 @@ private:
     } _algorithm = algorithm_job;
 
     /**
-     *  Helper class that creates an array with the to-be-included files
-     */
-    class Includes : public JSON::Array
-    {
-    public:
-        /**
-         *  Constructor
-         *  @param  obj       User-supplied map/reduce or race object
-         */
-        Includes(const Php::Value &obj)
-        {
-            // call the includes method on our map reduce object
-            Php::Value includes = obj.call("includes");
-
-            // check for a single string and for an array
-            if (includes.isString()) append(includes.rawValue(), includes.size());
-            else if (includes.isArray())
-            {
-                // loop over all the files in the includes array
-                for (auto iter : includes)
-                {
-                    // if it's a string we're appending it
-                    if (iter.second.isString()) append(iter.second.stringValue());
-                }
-            }
-        }
-
-        /**
-         *  Destructor
-         */
-        virtual ~Includes() {}
-    };
-
-    /**
      *  Utility class for an executable (the mapper, reducer or finalizer
      */
     class Executable : public JSON::Object
@@ -84,10 +50,9 @@ private:
         /**
          *  Constructor
          *  @param  name        Name of the executable (mapper, reducer or finalizer)
-         *  @param  includes    The to-be-included files
-         *  @param  serialized  Serialized data
+         *  @param  stdin       Data to be set as "stdin" property
          */
-        Executable(const char *name, const Includes &includes, const std::string &serialized)
+        Executable(const char *name, const std::string &stdin)
         {
             // construct the full name
             std::string fullname("exit(YothalotInit('");
@@ -96,8 +61,7 @@ private:
             // set all the properties
             set("executable", "php");
             set("arguments", JSON::Array({"-r", fullname.data()}));
-            set("object", serialized);
-            set("includes", includes);
+            set("stdin", stdin);
             set("limit", JSON::Object());
         }
 
@@ -110,23 +74,32 @@ private:
     /**
      *  Class definition to create a simple stdin for races
      */
-    class Stdin : public std::string
+    class InputData : public std::string
     {
     public:
         /**
          *  Constructor
+         *  @param  algo        User supplied algorithm object
          */
-        Stdin(const Php::Value &algo)
+        InputData(const Php::Value &algo)
         {
+            // serialize the user-supplied object
+            auto serialized = Php::call("serialize", algo);
+
+            // find out what the include files are
+            auto includes = algo.call("includes");
+
             // create a simple php array with the includes and the algorithm object
-            Php::Value input(Php::Type::Array);
-            input[0] = algo.call("includes");
-            input[1] = Php::call("serialize", algo); // this one is serialized twice as we're unable to unserialize it right away
-                                                     // due to the class that doesn't exist yet due to not yet included files
+            Php::Value array(Php::Type::Array);
+            array[0] = includes;
+            array[1] = serialized;
 
-            // assign the serialized input array base64 encoded to this string
-            assign(Php::call("base64_encode", Php::call("serialize", input)).stringValue());
+            // serialize the array, and base64 encode it to ensure that we have no NULL values in the string
+            auto result = Php::call("base64_encode", Php::call("serialize", array));
 
+            // assign the result to the std::string
+            assign(result.stringValue());
+            
             // append some newlines as we should be followed by data
             append("\n\n");
         }
@@ -139,22 +112,19 @@ public:
      */
     Data(const Php::Value &algo)
     {
+        // construct the input data
+        InputData input(algo);
+
         // in case we're a map reduce algorithm we set a modulo, mapper, reducer and writer
         if (algo.instanceOf("Yothalot\\MapReduce"))
         {
-            // serialize the object
-            auto serialized = Php::call("base64_encode", Php::call("serialize", algo)).stringValue();
-
-            // construct the includes
-            Includes includes(algo);
-
             // set default limits
             set("processes", 20);
             set("input", _input);
             set("modulo", 1);
-            set("mapper", Executable("mapper", includes, serialized));
-            set("reducer", Executable("reducer", includes, serialized));
-            set("finalizer", Executable("finalizer", includes, serialized));
+            set("mapper", Executable("mapper", input));
+            set("reducer", Executable("reducer", input));
+            set("finalizer", Executable("finalizer", input));
             
             // remember algorithm type
             _algorithm = algorithm_mapreduce;
@@ -165,7 +135,8 @@ public:
             // set the json properties
             set("executable", "php");
             set("arguments", JSON::Array({"-r", "exit(YothalotInit('run'));"}));
-            set("stdin", Stdin(algo));
+            set("stdin", input);
+            set("input", _input);
 
             // remember algorithm type
             _algorithm = algorithm_race;

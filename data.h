@@ -125,7 +125,7 @@ public:
             set("mapper", Executable("mapper", input));
             set("reducer", Executable("reducer", input));
             set("finalizer", Executable("finalizer", input));
-            
+
             // remember algorithm type
             _algorithm = algorithm_mapreduce;
         }

@@ -65,14 +65,23 @@ public:
         Php::Value includes = unserialized[0];
         Php::Value serializedObject = unserialized[1];
 
-        // loop over all our includes and call require_once with all of them
-        for (int i = 0; i < includes.size(); ++i)
+        // the return value of the includes method could be a single string
+        if (includes.isString())
         {
-            // the file to include
-            Php::Value path = includes[i];
-            
             // include the PHP file (this could cause a PHP fatal error)
-            if (!Php::include_once(path.stringValue())) Php::error << "Failed to include " << path << std::flush;
+            if (!Php::include_once(includes.stringValue())) Php::error << "Failed to include " << includes.stringValue() << std::flush;
+        }
+        else if (includes.isArray())
+        {
+            // loop over all our includes and call require_once with all of them
+            for (int i = 0; i < includes.size(); ++i)
+            {
+                // the file to include
+                Php::Value path = includes[i];
+
+                // include the PHP file (this could cause a PHP fatal error)
+                if (!Php::include_once(path.stringValue())) Php::error << "Failed to include " << path << std::flush;
+            }
         }
 
         // unserialize the inner object

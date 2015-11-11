@@ -20,10 +20,9 @@
 /**
  *  Run the mapper
  *  @param  input           All the input
- *  @param  modulo          The modulo setting
  *  @return int
  */
-static int map(const Stdin &input, size_t modulo)
+static int map(const Stdin &input)
 {
     // prevent exceptions
     try
@@ -31,8 +30,17 @@ static int map(const Stdin &input, size_t modulo)
         // wrap the php object
         Wrapper mapreduce(input.object());
 
+        // get our argv
+        auto argv = Php::Globals::instance()["argv"];
+
+        // initialize our modulo variable
+        size_t modulo = 1;
+
+        // set the modulo to the last argument
+        if (argv.get(argv.size()).isNumeric()) modulo = argv.get(argv.size()).numericValue();
+
         // create the task
-        Yothalot::MapTask task(&mapreduce, modulo);
+        Yothalot::MapTask task(base(), &mapreduce, modulo);
 
         // add the data to process
         task.process(input.data(), input.size());
@@ -189,8 +197,7 @@ Php::Value yothalotInit(Php::Parameters &params)
     if (strcasecmp(params[0].rawValue(), "run") == 0) result = run(input);
 
     // check the type of task to run that is part of the mapreduce algorithm
-    // @todo fix modulo setting (modulo can be found in $argv[$argc-1])
-    if (strcasecmp(params[0].rawValue(), "mapper")    == 0) result = map(input, params[1].numericValue());
+    if (strcasecmp(params[0].rawValue(), "mapper")    == 0) result = map(input);
     if (strcasecmp(params[0].rawValue(), "reducer")   == 0) result = reduce(input);
     if (strcasecmp(params[0].rawValue(), "finalizer") == 0) result = write(input);
 

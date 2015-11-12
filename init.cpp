@@ -31,13 +31,11 @@ static int map(const Stdin &input)
         Wrapper mapreduce(input.object());
 
         // get our argv
-        auto argv = Php::Globals::instance()["argv"];
+        auto argv = Php::GLOBALS["argv"];
+        auto argc = Php::GLOBALS["argc"];
 
-        // initialize our modulo variable
-        size_t modulo = 1;
-
-        // set the modulo to the last argument
-        if (argv.get(argv.size()).isNumeric()) modulo = argv.get(argv.size()).numericValue();
+        // modulo is the last argument
+        auto modulo = argc > 1 ? (int)argv.get(argc - 1) : 1;
 
         // create the task
         Yothalot::MapTask task(base(), &mapreduce, modulo);

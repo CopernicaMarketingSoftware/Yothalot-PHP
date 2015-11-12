@@ -157,6 +157,13 @@ public:
     virtual ~Data() {}
 
     /**
+     *  Simple checkers for race and mapreduce
+     *  @return bool
+     */
+    bool isRace() const { return _algorithm == algorithm_race; }
+    bool isMapReduce() const { return _algorithm == algorithm_mapreduce; }
+
+    /**
      *  Publish the data to a connection
      *  @param  connection
      */

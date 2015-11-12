@@ -150,6 +150,13 @@ public:
     virtual ~JobImpl() {}
 
     /**
+     *  Simple checkers for race and mapreduce
+     *  @return bool
+     */
+    bool isRace() const { return _json.isRace(); }
+    bool isMapReduce() const { return _json.isMapReduce(); }
+
+    /**
      *  Relative path name of the temporary directory
      *  @return const char
      */

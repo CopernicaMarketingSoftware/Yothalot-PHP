@@ -22,7 +22,7 @@
 /**
  *  Class definition
  */
-class Result : public Php::Base
+class MapReduceResult : public Php::Base
 {
 private:
     /**
@@ -36,18 +36,18 @@ public:
      *  Constructor
      *  @param  output
      */
-    Result(const JSON::Object &output) : _json(output) {}
+    MapReduceResult(const JSON::Object &output) : _json(output) {}
 
     /**
      *  Constructor
      *  @param  output
      */
-    Result(const std::shared_ptr<JSON::Object> &output) : _json(*output) {}
+    MapReduceResult(const std::shared_ptr<JSON::Object> &output) : _json(*output) {}
 
     /**
      *  Destructor
      */
-    virtual ~Result() {}
+    virtual ~MapReduceResult() {}
 
     /**
      *  Get the time when the job is started
@@ -104,16 +104,6 @@ public:
 
         // construct and return a Yothalot\Stats object
         return Php::Object("Yothalot\\Stats", new Stats(_json.object("finalizers")));
-    }
-
-    /**
-     *  Get the result, only used for races and regular jobs
-     *  @return Php::Value
-     */
-    Php::Value result() const
-    {
-        // unserialize the base64 encoded object from stdout
-        return Php::call("unserialize", Php::call("base64_decode", _json.object("winner").c_str("stdout")));
     }
 };
 

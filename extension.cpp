@@ -12,7 +12,8 @@
  */
 #include <phpcpp.h>
 
-#include "result.h"
+#include "mapreduceresult.h"
+#include "raceresult.h"
 #include "stats.h"
 #include "datastats.h"
 #include "writer.h"
@@ -55,18 +56,19 @@ extern "C" {
         Php::Namespace ns("Yothalot");
 
         // create the classes
-        Php::Class<Writer>      writer      ("Writer");
-        Php::Class<Reducer>     reducer     ("Reducer");
-        Php::Class<Values>      values      ("Values");
-        Php::Class<Connection>  connection  ("Connection");
-        Php::Class<Job>         job         ("Job");
-        Php::Class<Path>        path        ("Path");
-        Php::Class<Output>      output      ("Output");
-        Php::Class<Input>       input       ("Input");
-        Php::Class<Record>      record      ("Record");
-        Php::Class<Result>      result      ("Result");
-        Php::Class<Stats>       stats       ("Stats");
-        Php::Class<DataStats>   datastats   ("DataStats");
+        Php::Class<Writer>          writer         ("Writer");
+        Php::Class<Reducer>         reducer        ("Reducer");
+        Php::Class<Values>          values         ("Values");
+        Php::Class<Connection>      connection     ("Connection");
+        Php::Class<Job>             job            ("Job");
+        Php::Class<Path>            path           ("Path");
+        Php::Class<Output>          output         ("Output");
+        Php::Class<Input>           input          ("Input");
+        Php::Class<Record>          record         ("Record");
+        Php::Class<MapReduceResult> mapReduceResult("MapReduceResult");
+        Php::Class<RaceResult>      raceResult     ("RaceResult");
+        Php::Class<Stats>           stats          ("Stats");
+        Php::Class<DataStats>       datastats      ("DataStats");
 
         // register writer functions
         writer.method("emit", &Writer::emit, {
@@ -146,28 +148,31 @@ extern "C" {
         }).method("array", &Record::array, {
         });
 
-        // register result methods
-        result.method("started",    &Result::started,    {})
-              .method("runtime",    &Result::runtime,    {})
-              .method("mappers",    &Result::mappers,    {})
-              .method("reducers",   &Result::reducers,   {})
-              .method("finalizers", &Result::finalizers, {})
-              .method("result",     &Result::result,     {});
+        // register map reduce result methods
+        mapReduceResult.method("started",    &MapReduceResult::started)
+                       .method("runtime",    &MapReduceResult::runtime)
+                       .method("mappers",    &MapReduceResult::mappers)
+                       .method("reducers",   &MapReduceResult::reducers)
+                       .method("finalizers", &MapReduceResult::finalizers);
+
+        raceResult.method("started",         &RaceResult::started)
+                  .method("runtime",         &RaceResult::runtime)
+                  .method("result",          &RaceResult::result);
 
         // register stats methods
-        stats.method("first",       &Stats::first,     {})
-             .method("last",        &Stats::last,      {})
-             .method("finished",    &Stats::finished,  {})
-             .method("fastest",     &Stats::fastest,   {})
-             .method("slowest",     &Stats::slowest,   {})
-             .method("processes",   &Stats::processes, {})
-             .method("runtime",     &Stats::runtime,   {})
-             .method("input",       &Stats::input,     {})
-             .method("output",      &Stats::output,    {});
+        stats.method("first",       &Stats::first)
+             .method("last",        &Stats::last)
+             .method("finished",    &Stats::finished)
+             .method("fastest",     &Stats::fastest)
+             .method("slowest",     &Stats::slowest)
+             .method("processes",   &Stats::processes)
+             .method("runtime",     &Stats::runtime)
+             .method("input",       &Stats::input)
+             .method("output",      &Stats::output);
 
         // register datastats methods
-        datastats.method("files",   &DataStats::files,  {})
-                 .method("bytes",   &DataStats::bytes,  {});
+        datastats.method("files",   &DataStats::files)
+                 .method("bytes",   &DataStats::bytes);
 
         // create the map reduce interface
         Php::Interface mapreduce("MapReduce");
@@ -205,7 +210,8 @@ extern "C" {
         ns.add(std::move(input));
         ns.add(std::move(output));
         ns.add(std::move(record));
-        ns.add(std::move(result));
+        ns.add(std::move(mapReduceResult));
+        ns.add(std::move(raceResult));
         ns.add(std::move(stats));
         ns.add(std::move(datastats));
 

@@ -25,7 +25,8 @@
 #include "directory.h"
 #include "jobimpl.h"
 #include "serialized.h"
-#include "result.h"
+#include "raceresult.h"
+#include "mapreduceresult.h"
 #include <iostream>
 
 /**
@@ -285,7 +286,11 @@ public:
         if (!_impl->wait()) return nullptr;
 
         // construct a result object
-        return Php::Object("Yothalot\\Result", new Result(_impl->result()));
+        if (_impl->isRace())           return Php::Object("Yothalot\\RaceResult", new RaceResult(_impl->result()));
+        else if (_impl->isMapReduce()) return Php::Object("Yothalot\\MapReduceResult", new MapReduceResult(_impl->result()));
+
+        // if we somehow failed to create a result object we just return null
+        return nullptr;
     }
 
     /**

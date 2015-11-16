@@ -69,6 +69,7 @@ extern "C" {
         Php::Class<RaceResult>      raceResult     ("RaceResult");
         Php::Class<Stats>           stats          ("Stats");
         Php::Class<DataStats>       datastats      ("DataStats");
+        Php::Class<Winner>          winner         ("Winner");
 
         // register writer functions
         writer.method("emit", &Writer::emit, {
@@ -156,8 +157,12 @@ extern "C" {
                        .method("finalizers", &MapReduceResult::finalizers);
 
         raceResult.method("started",         &RaceResult::started)
+                  .method("finished",        &RaceResult::finished)
                   .method("runtime",         &RaceResult::runtime)
-                  .method("result",          &RaceResult::result);
+                  .method("processes",       &RaceResult::processes)
+                  .method("result",          &RaceResult::result)
+                  .method("winner",          &RaceResult::winner);
+                  
 
         // register stats methods
         stats.method("first",       &Stats::first)
@@ -173,6 +178,20 @@ extern "C" {
         // register datastats methods
         datastats.method("files",   &DataStats::files)
                  .method("bytes",   &DataStats::bytes);
+
+        // register winner methods
+                // register stats methods
+        winner.method("input",    &Winner::input)
+              .method("output",   &Winner::output)
+              .method("error",    &Winner::error)
+              .method("server",   &Winner::server)
+              .method("pid",      &Winner::pid)
+              .method("signal",   &Winner::signal)
+              .method("exit",     &Winner::exit)
+              .method("started",  &Winner::started)
+              .method("finished", &Winner::finished)
+              .method("runtime",  &Winner::runtime);
+                 
 
         // create the map reduce interface
         Php::Interface mapreduce("MapReduce");
@@ -214,6 +233,7 @@ extern "C" {
         ns.add(std::move(raceResult));
         ns.add(std::move(stats));
         ns.add(std::move(datastats));
+        ns.add(std::move(winner));
 
         // add the init method for use on the command line to our namespace, this
         // will result in `php -r "YothalotInit('mapper');"`

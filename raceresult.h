@@ -18,6 +18,7 @@
  *  Dependencies
  */
 #include "stats.h"
+#include "winner.h"
 
 /**
  *  Class definition
@@ -57,6 +58,15 @@ public:
     {
         return _json.decimal("started");
     }
+    
+    /**
+     *  Get the time when the job is finished
+     *  @return Php::Value
+     */
+    Php::Value finished() const
+    {
+        return _json.decimal("finished");
+    }
 
     /**
      *  Get the total runtime
@@ -65,6 +75,15 @@ public:
     Php::Value runtime() const
     {
         return _json.decimal("runtime");
+    }
+    
+    /**
+     *  Get the number of processes during the race
+     *  @return Php::Value
+     */
+    Php::Value processes() const
+    {
+        return _json.integer("processes");
     }
 
     /**
@@ -75,6 +94,15 @@ public:
     {
         // unserialize the base64 encoded object from stdout
         return Php::call("unserialize", Php::call("base64_decode", _json.object("winner").c_str("stdout")));
+    }
+    
+    /**
+     *  Get the winner class with all winner statistics
+     *  @return Php::Value
+     */
+    Php::Value winner()
+    {
+        return Php::Object("Yothalot\\Winner", new Winner(_json.object("winner")));
     }
 };
 

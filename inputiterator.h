@@ -68,7 +68,7 @@ public:
      *  @param  start       Start position
      *  @param  bytes       Number of bytes to process
      */
-    InputIterator(Php::Base *base, const char *name, size_t start, size_t bytes) : 
+    InputIterator(Php::Base *base, const std::string &name, size_t start, size_t bytes) :
         Php::Iterator(base), _name(name), _start(start), _bytes(bytes) {}
 
     /**

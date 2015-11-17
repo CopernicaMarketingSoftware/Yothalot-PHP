@@ -75,11 +75,12 @@ public:
 
     /**
      *  Cast to a string
-     *  @return const char *
+     *
+     *  @return The absolute path
      */
-    const char *__toString() const
+    Php::Value __toString() const
     {
-        return _fullname->absolute();
+        return _fullname->path();
     }
 };
 

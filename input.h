@@ -96,7 +96,7 @@ public:
     virtual Php::Iterator *getIterator() override
     {
         // construct the new iterator
-        return new InputIterator(this, _name.data(), _seek, _bytes);
+        return new InputIterator(this, _name, _seek, _bytes);
     }
 };
 

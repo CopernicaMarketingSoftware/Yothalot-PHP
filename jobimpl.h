@@ -454,10 +454,10 @@ public:
         _result = std::make_shared<JSON::Object>(_tempqueue->consume());
 
         // did an error occur?
-        if (!_result->contains("stderr")) return true;
+        if (!_result->contains("error")) return true;
 
         // report the error to PHP space as a warning
-        Php::warning << _result->c_str("stderr") << std::flush;
+        Php::warning << _result->object("error").c_str("stderr") << std::flush;
 
         // and return our result (which is not good)
         return false;

@@ -259,7 +259,7 @@ public:
     }
 
     /**
-     *  set the max number of bytes
+     *  Set the max number of bytes
      *  @param value
      */
     void maxbytes(int64_t value)
@@ -268,6 +268,16 @@ public:
         object("mapper").object("limit").set("bytes", value);
         object("reducer").object("limit").set("bytes", value);
         object("finalizer").object("limit").set("bytes", value);
+    }
+
+    /**
+     *  Set the local property
+     *  @param  value
+     */
+    void local(bool value)
+    {
+        // set the local property
+        set("local", value);
     }
 
     /**

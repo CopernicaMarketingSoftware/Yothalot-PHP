@@ -113,6 +113,8 @@ extern "C" {
             Php::ByVal("value", Php::Type::Numeric)
         }).method("maxfinalizers", &Job::maxfinalizers, {
             Php::ByVal("value", Php::Type::Numeric)
+        }).method("local", &Job::local, {
+            Php::ByVal("value", Php::Type::Bool)
         }).method("start", &Job::start, {
         }).method("detach", &Job::detach, {
         }).method("wait", &Job::wait);

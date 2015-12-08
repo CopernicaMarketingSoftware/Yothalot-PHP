@@ -216,6 +216,20 @@ public:
     }
 
     /**
+     *  Set the local property
+     *  @param  params      PHP input parameters
+     *  @return             Result is the object for chaining or nullptr on failure
+     */
+    Php::Value local(Php::Parameters &params)
+    {
+        // pass on to the implementation object
+        if (!_impl->local(params[0].boolValue())) return nullptr;
+
+        // allow chaining
+        return this;
+    }
+
+    /**
      *  Add a file to this job
      *  @param  params  PHP input parameters
      *  @return         the object for chaining or a nullptr on failure

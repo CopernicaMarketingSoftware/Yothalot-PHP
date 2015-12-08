@@ -285,6 +285,18 @@ public:
         return true;
     }
 
+    bool local(bool value)
+    {
+        // not possible if job has already started
+        if (_started) return false;
+
+        // set in the json
+        _json.local(value);
+
+        // done
+        return true;
+    }
+
     /**
      *  Add data to the process
      *  @param  data

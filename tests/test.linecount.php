@@ -28,19 +28,15 @@ $wordcount = new LineCount($output);
  *  we need an instance of this master object.
  *
  *  (Under the hood, you do not connect with the Yothalot master process, but to
- *  a RabbitMQ message queue, the login details are therefore the RabbitMQ 
+ *  a RabbitMQ message queue, the login details are therefore the RabbitMQ
  *  details)
  *
  *  @var Yothalot\Master
  */
-$master = new Yothalot\Connection(array(
-    "host"  =>  "localhost",
-    "vhost" =>  "gluster",
-    "routingkey" => "mapreduce"
-));
+$master = new Yothalot\Connection();
 
 /**
- *  Now that we have access to the master, we can tell the master to create a 
+ *  Now that we have access to the master, we can tell the master to create a
  *  new MapReduce job, using our WordCount implementation. The return value
  *  is a Yothalot\Job object, that has many methods to feed data to the job,
  *  and to finetune the job.
@@ -49,6 +45,12 @@ $master = new Yothalot\Connection(array(
  */
 $job = new Yothalot\Job($master, $wordcount);
 
+/**
+ *  Function to list all files and add the pathname
+ *
+ *  @param  job     The job to add it to
+ *  @param  path    The path to search
+ */
 function assign($job, $path)
 {
     $objects = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($path), RecursiveIteratorIterator::SELF_FIRST);
@@ -59,7 +61,15 @@ function assign($job, $path)
     }
 }
 
+/**
+ *  Add every file in the current working directory to the job
+ */
 assign($job, getcwd());
+
+/**
+ *  Start the job, from which point we can no longer add any data.
+ */
+$job->start();
 
 /**
  *  Wait for the result of the map reduce job
@@ -68,7 +78,7 @@ $job->wait();
 
 /**
  *  The WordCount class wrote its output to a file on the distributed file
- *  system. To find out what the absolute path name of this file is on this 
+ *  system. To find out what the absolute path name of this file is on this
  *  machine, we  make use of the Yothalot\Path class to turn the relative name
  *  into an absolute path (GlusterFS must be mounted on this machine)
  *

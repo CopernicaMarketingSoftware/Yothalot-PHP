@@ -39,10 +39,10 @@ class Job :
 private:
     /**
      *  The actual implementation of the job
-     * 
+     *
      *  This member is either constructed by the __construct() or by the
      *  unserialize() method
-     * 
+     *
      *  @var JobImpl
      */
     std::unique_ptr<JobImpl> _impl;
@@ -76,7 +76,7 @@ public:
 
         // check type of parameters
         if (!connection.instanceOf("Yothalot\\Connection")) throw Php::Exception("Connection is not an instance of Yothalot\\Connection");
-        if (!algo.instanceOf("Yothalot\\MapReduce") && !algo.instanceOf("Yothalot\\Race")) throw Php::Exception("Connection is not an instance of Yothalot\\MapReduce");
+        if (!algo.instanceOf("Yothalot\\MapReduce") && !algo.instanceOf("Yothalot\\MapReduce2") && !algo.instanceOf("Yothalot\\Race")) throw Php::Exception("Connection is not an instance of Yothalot\\MapReduce, Yothalot\\MapReduce2 or Yothalot\\Race.");
 
         // prevent that exceptions bubble up
         try
@@ -205,11 +205,56 @@ public:
      */
     Php::Value add(Php::Parameters &params)
     {
-        // serialize and base64 encode the data to ensure that no null character appear in it
-        auto data = Php::call("base64_encode", Php::call("serialize", params[0])).stringValue();
+        // this is the old implementation
+        if (params.size() == 1)
+        {
+            // serialize and base64 encode the data to ensure that no null character appear in it
+            auto data = Php::call("base64_encode", Php::call("serialize", params[0])).stringValue();
 
-        // pass on to the implementation object
-        if (!_impl->add(data)) return nullptr;
+            // pass on to the implementation object
+            if (!_impl->add(data)) return nullptr;
+
+            // allow chaining
+            return this;
+        }
+
+        // otherwise redirect directly to the multiple added case
+        else if (params.size() == 2)
+        {
+            // create the key and the value from the parameters
+            auto key = toTuple(params[0]);
+            auto value = toTuple(params[1]);
+
+            // get the possible server
+            const char* server = params.size() >= 3 ? params[2].rawValue() : "";
+
+            // pass on to the implementation object
+            if (!_impl->add(key, value, server)) return nullptr;
+
+            // allow chaining
+            return this;
+        }
+
+        // i guess we failed now
+        return nullptr;
+    }
+
+    /**
+     *  Add data to this job
+     *  @param  params  PHP input parameters
+     *  @return         Result is the object for chaining or nullptr on failure
+     */
+    Php::Value map(Php::Parameters &params)
+    {
+        // create the key and the value from the parameters
+        auto key = toTuple(params[0]);
+        auto value = toTuple(params[1]);
+
+        // get the possible server
+        const char* server = params.size() >= 3 ? params[2].rawValue() : "";
+
+        // immediately redirect
+        if (!_impl->map(key, value, server)) return nullptr;
 
         // allow chaining
         return this;
@@ -230,45 +275,57 @@ public:
     }
 
     /**
-     *  Add a file to this job
-     *  @param  params  PHP input parameters
-     *  @return         the object for chaining or a nullptr on failure
+     *  Flush the file, causing a new output file to be created.
+     *  @return             Result is the object for chaining or nullptr on failure
      */
-    Php::Value file(Php::Parameters &params)
+    Php::Value flush()
     {
-       // serialize and base64 encode the data to ensure that no null character appear in it
-        auto data = Php::call("base64_encode", Php::call("serialize", params[0])).stringValue();
-
-        // get the filename
-        auto filename = params[(params.size() >= 2) ? 1 : 0].stringValue();
-
         // pass on to the implementation object
-        if (!_impl->file(data, filename)) return nullptr;
+        if (!_impl->flush()) return nullptr;
 
         // allow chaining
         return this;
     }
 
     /**
-     *  Add a server to this job
+     *  Add a file to this job
      *  @param  params  PHP input parameters
-     *  @return         the object so chaining is possible and nullptr on failure
+     *  @return         the object for chaining or a nullptr on failure
      */
-    Php::Value server(Php::Parameters &params)
+    Php::Value file(Php::Parameters &params)
     {
-        // serialize and base64 encode the data to ensure tha no null character appear in it
-        auto data = Php::call("base64_encode", Php::call("serialize", params[0])).stringValue();
+        // get the params in c++
+        const char *filename = params[0].rawValue();
+        int64_t start = params.size() >= 2 ? params[1].numericValue() : 0;
+        int64_t size = params.size() >= 3 ? params[2].numericValue() : 0;
+        bool remove = params.size() >= 4 ? params[3].boolValue() : false;
+        const char *server = params.size() >= 5 ? params[4].rawValue() : "";
 
-        // get the servername
-        auto servername = params[(params.size() >= 2) ? 1 : 0].stringValue();
+        // call the file function in the implementation
+        if (!_impl->file(filename, (size_t)start, (size_t)size, remove, server)) return nullptr;
 
-        // pass on to the implementation object
-        if (!_impl->server(data, servername)) return nullptr;
-
-        // allow chaning
+        // allow chaining
         return this;
     }
 
+    /**
+     *  Add a directory to this job
+     *  @param  params  PHP input parameters
+     *  @return         the object for chaining or a nullptr on failure
+     */
+    Php::Value directory(Php::Parameters &params)
+    {
+        // get the params in c++
+        auto dirname = params[0].rawValue();
+        auto remove = params.size() >= 1 ? params[1].boolValue() : false;
+        auto server = params.size() >= 2 ? params[2].rawValue() : "";
+
+        // call the file function in the implementation
+        if (!_impl->directory(dirname, remove, server)) return nullptr;
+
+        // allow chaining
+        return this;
+    }
 
     /**
      *  Detach the job -- run it remotely but do not wait for the answer

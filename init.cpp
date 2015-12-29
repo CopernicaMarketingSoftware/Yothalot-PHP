@@ -60,6 +60,49 @@ static int map(const Stdin &input)
 }
 
 /**
+ *  Run the mapper
+ *  @param  input       All the input
+ *  @return int
+ */
+static int kvmap(const Stdin &input)
+{
+    // prevent exceptions
+    try
+    {
+        // wrap the php object
+        Wrapper mapreduce(input.object());
+
+        // get our argv
+        auto argv = Php::GLOBALS["argv"];
+        auto argc = Php::GLOBALS["argc"];
+
+        // modulo is the last argument
+        auto modulo = argc > 1 ? (int)argv.get(argc - 1) : 1;
+
+        // create the task
+        Yothalot::MapTask2 task(base(), &mapreduce, modulo);
+
+        // add the data to process
+        task.process(input.data(), input.size());
+
+        // show output of mapper process
+        std::cout << task.output();
+
+        // done
+        return 0;
+    }
+    catch (const std::runtime_error &error)
+    {
+        // report error
+        Php::error << "Mapper error: " << error.what() << std::flush;
+
+        // failure
+        return -1;
+    }
+}
+
+
+/**
  *  Run the reducer
  *  @param  input           All the input
  *  @return int
@@ -184,20 +227,21 @@ Php::Value yothalotInit(Php::Parameters &params)
 
     // prevent PHP output during race algorithm
     Php::call("ob_start");
-    
+
     // read all input
     Stdin input;
-    
+
     // result variable
     int result = -1;
-    
+
     // the run is the very fist simple task
     if (strcasecmp(params[0].rawValue(), "run") == 0) result = run(input);
 
     // check the type of task to run that is part of the mapreduce algorithm
-    if (strcasecmp(params[0].rawValue(), "mapper")    == 0) result = map(input);
-    if (strcasecmp(params[0].rawValue(), "reducer")   == 0) result = reduce(input);
-    if (strcasecmp(params[0].rawValue(), "finalizer") == 0) result = write(input);
+    if (strcasecmp(params[0].rawValue(), "kvmapper")    == 0) result = kvmap(input);
+    else if (strcasecmp(params[0].rawValue(), "mapper")    == 0) result = map(input);
+    else if (strcasecmp(params[0].rawValue(), "reducer")   == 0) result = reduce(input);
+    else if (strcasecmp(params[0].rawValue(), "finalizer") == 0) result = write(input);
 
     // capture the output
     auto output = Php::call("ob_get_clean");

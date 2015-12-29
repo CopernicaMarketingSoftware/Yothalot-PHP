@@ -1,2 +1,5 @@
 *.so
 *.o
+*.sw*
+core
+vgcore.*

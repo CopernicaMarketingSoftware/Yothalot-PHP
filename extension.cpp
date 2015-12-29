@@ -90,14 +90,24 @@ extern "C" {
         // register the methods on our php classes
         job.method("__construct", &Job::__construct, {
             Php::ByVal("connection", "Yothalot\\Connection"),
-            Php::ByVal("algorithm") // This should be either Yothalot\MapReduce or Yothalot\Race
-        }).method("add", &Job::add, {
-            Php::ByVal("data", Php::Type::String)
-        }).method("file", &Job::file, {
-            Php::ByVal("data", Php::Type::String),
-            Php::ByVal("filename", Php::Type::String, false)
-        }).method("server", &Job::server, {
-            Php::ByVal("data", Php::Type::String),
+            Php::ByVal("algorithm") // This should be either Yothalot\MapReduce, Yothalot\MapReduce2 or Yothalot\Race
+        }).method("add", &Job::add, { // old, v1 on single argument. new, singular keys/values otherwise for more arguments
+            Php::ByVal("key", Php::Type::Null),
+            Php::ByVal("value", Php::Type::Null, false),
+            Php::ByVal("server", Php::Type::String, false)
+        }).method("map", &Job::map, { // this should ensure the multiple case, where mapped values will be combined
+            Php::ByVal("key", Php::Type::Null),
+            Php::ByVal("value", Php::Type::Null),
+            Php::ByVal("server", Php::Type::String, false)
+        }).method("file", &Job::file, { // new, v2 behaviour
+            Php::ByVal("filename", Php::Type::String),
+            Php::ByVal("start", Php::Type::Numeric, false),
+            Php::ByVal("size", Php::Type::Numeric, false),
+            Php::ByVal("remove", Php::Type::Bool, false),
+            Php::ByVal("server", Php::Type::String, false)
+        }).method("directory", &Job::directory, { // new, v2 behaviour
+            Php::ByVal("dirname", Php::Type::String),
+            Php::ByVal("remove", Php::Type::Bool, false),
             Php::ByVal("server", Php::Type::String, false)
         }).method("modulo", &Job::modulo, {
             Php::ByVal("value", Php::Type::Numeric)
@@ -115,6 +125,7 @@ extern "C" {
             Php::ByVal("value", Php::Type::Numeric)
         }).method("local", &Job::local, {
             Php::ByVal("value", Php::Type::Bool)
+        }).method("flush", &Job::flush, { // new, v2 behaviour
         }).method("start", &Job::start, {
         }).method("detach", &Job::detach, {
         }).method("wait", &Job::wait);
@@ -164,7 +175,7 @@ extern "C" {
                   .method("processes",       &RaceResult::processes)
                   .method("result",          &RaceResult::result)
                   .method("winner",          &RaceResult::winner);
-                  
+
 
         // register stats methods
         stats.method("first",       &Stats::first)
@@ -193,7 +204,7 @@ extern "C" {
               .method("started",  &Winner::started)
               .method("finished", &Winner::finished)
               .method("runtime",  &Winner::runtime);
-                 
+
 
         // create the map reduce interface
         Php::Interface mapreduce("MapReduce");
@@ -201,6 +212,25 @@ extern "C" {
         // register the interface methods
         mapreduce.method("map", {
             Php::ByVal("record", Php::Type::Null),
+            Php::ByVal("reducer", "Yothalot\\Reducer")
+        }).method("reduce", {
+            Php::ByVal("key", Php::Type::Null),
+            Php::ByVal("values", "Yothalot\\Values"),
+            Php::ByVal("writer", "Yothalot\\Writer")
+        }).method("write", {
+            Php::ByVal("key", Php::Type::Null),
+            Php::ByVal("value", Php::Type::Null)
+        }).method("includes");
+
+        // create an interface for the kvmapreduce, because we cannot
+        // create an interface with optional parameters so that the old mapreduce
+        // keeps working as it did
+        Php::Interface kvmapreduce("MapReduce2");
+
+        // register the interface methods
+        kvmapreduce.method("map", {
+            Php::ByVal("key", Php::Type::Null),
+            Php::ByVal("value", Php::Type::Null),
             Php::ByVal("reducer", "Yothalot\\Reducer")
         }).method("reduce", {
             Php::ByVal("key", Php::Type::Null),
@@ -227,6 +257,7 @@ extern "C" {
         ns.add(std::move(job));
         ns.add(std::move(path));
         ns.add(std::move(mapreduce));
+        ns.add(std::move(kvmapreduce));
         ns.add(std::move(race));
         ns.add(std::move(input));
         ns.add(std::move(output));

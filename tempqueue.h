@@ -84,7 +84,7 @@ public:
     /**
      *  Destructor
      */
-    virtual ~TempQueue() 
+    virtual ~TempQueue()
     {
         // don't do a thing when not connected
         if (!_core->connection()) return;

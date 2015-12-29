@@ -39,7 +39,7 @@ private:
     std::unique_ptr<Yothalot::SubTask> _task;
 
     /**
-     *  The PHP "Yothalot\MapReduce" object that holds the implementation to all methods
+     *  The PHP "Yothalot\MapReduce" or "Yothalot\MapReduce2" object that holds the implementation to all methods
      *  @var Php::Object
      */
     Php::Object _object;
@@ -56,6 +56,26 @@ private:
         {
             // forward the map call to php, don't forget to unserialize the data though
             _object.call("map", Php::call("unserialize", Php::call("base64_decode", Php::Value(data, size))), Php::Object("Yothalot\\Reducer", new Reducer(reducer)));
+        }
+        catch (const Php::Exception &exception)
+        {
+            // this is a big problem!
+            Php::error << exception.what() << std::flush;
+        }
+    }
+
+    /**
+     *  Function to map a key-value to a key/value pair
+     *  @param  key
+     *  @param  value
+     */
+    virtual void map(const Yothalot::Key &key, const Yothalot::Value &value, Yothalot::Reducer &reducer) override
+    {
+        // prevent PHP exceptions from bubbling up
+        try
+        {
+            // forward the map call to php, don't forget to unserialize the data though
+            _object.call("map", fromTuple(key), fromTuple(value), Php::Object("Yothalot\\Reducer", new Reducer(reducer)));
         }
         catch (const Php::Exception &exception)
         {
@@ -113,7 +133,7 @@ public:
     Wrapper(Php::Object &&object) : _object(std::move(object))
     {
         // make sure we're the correct type
-        if (!_object.instanceOf("Yothalot\\MapReduce")) Php::error << "Failed to unserialize to Yothalot\\MapReduce object" << std::flush;
+        if (!_object.instanceOf("Yothalot\\MapReduce") && !_object.instanceOf("Yothalot\\MapReduce2")) Php::error << "Failed to unserialize to Yothalot\\MapReduce or Yothalot\\MapReduce2 object" << std::flush;
     }
 
     /**

@@ -17,6 +17,7 @@
  */
 #include <phpcpp.h>
 #include <yothalot.h>
+#include "json/array.h"
 
 /**
  *  Class definition
@@ -84,6 +85,41 @@ protected:
             if (input.isNumber(i))    output.set(i, input.number(i));
             else if (input.isNull(i)) output.set(i, nullptr);
             else                      output.set(i, input.string(i));
+        }
+
+        // return the output
+        return output;
+    }
+
+    /**
+     *  Turn a Yothalot::Tuple into json
+     *  @param  tuple
+     *  @return JSON::Object
+     */
+    JSON::Array toJson(const Yothalot::Tuple &input) const
+    {
+        // the resulting array
+        JSON::Array output;
+
+        // if we have a single field we're not building an array
+        if (input.fields() == 1)
+        {
+            // determine the type to add
+            if (input.isNumber(0))      output.append(input.number(0));
+            else if (input.isNull(0))   output.append(nullptr);
+            else                        output.append(input.string(0));
+
+            // return the output
+            return output;
+        }
+
+        // loop over all the fields and add them one by one
+        for (size_t i = 0; i < input.fields(); ++i)
+        {
+            // determine the type to add
+            if (input.isNumber(i))    output.append(input.number(i));
+            else if (input.isNull(i)) output.append(nullptr);
+            else                      output.append(input.string(i));
         }
 
         // return the output

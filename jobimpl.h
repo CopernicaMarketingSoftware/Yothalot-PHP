@@ -9,7 +9,7 @@
  *  @author Emiel Bruijntjes <emiel.bruijntjes@copernica.com>
  *  @copyright 2015 Copernica BV
  */
- 
+
 /**
  *  Include guard
  */
@@ -79,10 +79,10 @@ private:
      *  Get access to the output file
      *  @return Yothalot::Output
      */
-    Yothalot::Output *output()
+    Yothalot::Output *output(bool flush = false)
     {
         // do we already have such a file?
-        if (_output) return _output.get();
+        if (_output && !flush) return _output.get();
 
         // file is not yet opened, but we need a directory on glusterfs for that
         if (!_directory) return nullptr;
@@ -110,8 +110,8 @@ public:
             // create the directory
             _directory.reset(new Directory());
 
-            // the directory exists, set this in the json
-            _json.directory(_directory->relative());
+            // the directory exists, set this in the json, we want the cleanup and no server
+            _json.directory(_directory->relative(), true, "");
         }
         catch (...)
         {
@@ -157,6 +157,12 @@ public:
     bool isMapReduce() const { return _json.isMapReduce(); }
 
     /**
+     *  Simple checker for version
+     *  @return int
+     */
+    int version() const { return _json.version(); }
+
+    /**
      *  Relative path name of the temporary directory
      *  @return const char
      */
@@ -171,13 +177,13 @@ public:
      *  @param  value
      *  @return bool
      */
-    bool maxprocesses(int value) 
+    bool maxprocesses(int value)
     {
         // not possible if job was already started
         if (_started) return false;
 
         // set in the JSON
-        _json.maxprocesses(value); 
+        _json.maxprocesses(value);
 
         // done
         return true;
@@ -188,7 +194,7 @@ public:
      *  @param  value
      *  @return bool
      */
-    bool maxmappers(int value) 
+    bool maxmappers(int value)
     {
         // not possible if job was already started
         if (_started) return false;
@@ -285,6 +291,11 @@ public:
         return true;
     }
 
+    /**
+     *  Setter for whether or not to run locally.
+     *  @param  value
+     *  @return bool
+     */
     bool local(bool value)
     {
         // not possible if job has already started
@@ -298,14 +309,30 @@ public:
     }
 
     /**
+     *  Flush the output file.
+     *  @return bool
+     */
+    bool flush()
+    {
+        // not possible if already started
+        if (_started) return false;
+
+        // simply get a new output
+        output(true);
+
+        // done
+        return true;
+    }
+
+    /**
      *  Add data to the process
      *  @param  data
      *  @return bool
      */
     bool add(const std::string &data)
     {
-        // impossible if already started
-        if (_started) return false;
+        // impossible if already started and in the newer versions, this should be replaced with an empty key for example
+        if (_started || version() != 1) return false;
 
         // the output file to which we're going to write
         auto *out = output();
@@ -313,7 +340,7 @@ public:
         // do we have such a file?
         if (out)
         {
-            // write a record to the file (record ID 0 means that no server 
+            // write a record to the file (record ID 0 means that no server
             // or file is available)
             Yothalot::Record record(0);
 
@@ -334,82 +361,84 @@ public:
     }
 
     /**
-     *  Add a file to the process
-     *  @param  data
-     *  @return bool
+     *  Add data to the process in the same files.
+     *  @param  key
+     *  @param  value
      */
-    bool file(const std::string &data, const std::string &filename)
+    bool add(const Yothalot::Key &key, const Yothalot::Value &value, const char *server)
     {
-        // we cannot add a file if job started
-        if (_started) return false;
+        // impossible if already started (is it?)
+        if (_started || !isMapReduce() || version() < 2) return false;
 
-        // the output file to which we are going to write
-        auto *out = output();
+        // get the output file we're going to write
+        auto out = output();
 
-        // do we have this file?
-        if (out)
-        {
-            // write a record to the file (record ID 1 means that a filename
-            // is available in the second record field)
-            Yothalot::Record record(1);
+        // if we have an output, write the record in the output file
+        if (out) out->add(Yothalot::Record(Yothalot::KeyValue(key, value)));
 
-            // add the data
-            record.add(data);
+        // otherwise we add it to the json directly (will be in separate files)
+        else _json.kv(key, value, server);
 
-            // add the filename;
-            record.add(filename);
-
-            // put this in the output file
-            out->add(record);
-        }
-        else
-        {
-            // add data to the json since no filename is available
-            _json.file(data, filename);
-        }
-
-        // done
+        // we've successfully added it
         return true;
     }
 
     /**
-     *  Add a server to the process
-     *  @param  data
-     *  @return bool
+     *  This will add all data to different files
+     *  @param  key
+     *  @param  value
      */
-    bool server(const std::string &data, const std::string &servername)
+    bool map(const Yothalot::Key &key, const Yothalot::Value &value, const char *server)
     {
-        // we cannot add a server if job started
-        if (_started) return false;
+        // impossible if already started (is it?) and impossible in older versions (we cannot mishmash the files because
+        // they use different protocols. stick to one)
+        if (_started || !isMapReduce() || version() != 2) return false;
 
-        // the output file to which we are going to write
-        auto *out = output();
+        // only add it to the json, faster for distinct files
+        _json.kv(key, value, server);
 
-        // do we have this file?
-        if (out)
-        {
-            // write a record to the file (record ID 2 means that a sever name
-            // is available in the second record field)
-            Yothalot::Record record(2);
-
-            // add the data
-            record.add(data);
-
-            // add the servername;
-            record.add(servername);
-
-            // put this in the output file
-            out->add(record);
-        }
-        else
-        {
-            // add data to the json since no filename is available
-            _json.server(data, servername);
-        }
-
-        // done
+        // we've successfully added it
         return true;
     }
+
+    /**
+     *  Add a file to the process
+     *  @param  filename
+     *  @param  start
+     *  @param  size
+     *  @param  server
+     *  @return bool
+     */
+    bool file(const char *filename, size_t start, size_t size, bool remove, const char *server)
+    {
+        // cannot add the file if already started
+        if (_started || version() != 2) return false;
+
+        // in this case, we have to use the json to transfer the data
+        _json.file(filename, start, size, remove, server);
+
+        // we succeeded
+        return true;
+    }
+
+    /**
+     *  Add a directory to the process
+     *  @param  dirname
+     *  @param  remove
+     *  @return bool
+     */
+    bool directory(const char *dirname, bool remove, const char *server)
+    {
+        // cannot add the file if already started
+        if (_started || version() != 2) return false;
+
+        // in this case, we have to use the json to transfer the data
+        _json.directory(dirname, remove, server);
+
+        // we succeeded
+        return true;
+    }
+
 
     /**
      *  Start the job

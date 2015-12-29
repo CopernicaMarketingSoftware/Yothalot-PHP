@@ -22,7 +22,7 @@
 /**
  *  Class definition
  */
-class Data : public JSON::Object
+class Data : public JSON::Object, private TupleHelper
 {
 private:
     /**
@@ -99,7 +99,7 @@ private:
 
             // assign the result to the std::string
             assign(result.stringValue());
-            
+
             // append some newlines as we should be followed by data
             append("\n\n");
         }
@@ -125,10 +125,28 @@ public:
             set("mapper", Executable("mapper", input));
             set("reducer", Executable("reducer", input));
             set("finalizer", Executable("finalizer", input));
+            set("version", 1);
 
             // remember algorithm type
             _algorithm = algorithm_mapreduce;
         }
+
+        // the kvmapreduce is new, and version 2
+        else if (algo.instanceOf("Yothalot\\MapReduce2"))
+        {
+            // set default limits
+            set("processes", 20);
+            set("input", _input);
+            set("modulo", 1);
+            set("version", 2);
+            set("mapper", Executable("kvmapper", input));
+            set("reducer", Executable("reducer", input));
+            set("finalizer", Executable("finalizer", input));
+
+            // remember algorithm type
+            _algorithm = algorithm_mapreduce;
+        }
+
         // in case we are a race we just set an executable manually etc.
         else if (algo.instanceOf("Yothalot\\Race"))
         {
@@ -144,7 +162,7 @@ public:
     }
 
     /**
-     *  Constructor for unserialized input data 
+     *  Constructor for unserialized input data
      *  @param  object          The unserialized JSON object
      */
     Data(const JSON::Object &object) :
@@ -301,21 +319,31 @@ public:
 
     /**
      *  Add file data to the json
-     *  @param data
-     *  @param filename
+     *  @param  filename
+     *  @param  start
+     *  @param  size
      */
-    void file(const std::string &data, const std::string &filename)
+    void file(const char *filename, size_t start, size_t size, bool remove, const char *server)
     {
         // initialize a simple json object
         JSON::Object object;
 
-        // set the data property
-        object.set("data", data);
-
         // set the filename
         object.set("filename", filename);
 
-        // and move the data into the input array
+        // set the file start
+        object.set("start", (int64_t)start);
+
+        // set the size
+        object.set("size", (int64_t)size);
+
+        // set whether or not to remove
+        object.set("remove", remove);
+
+        // set the server if present
+        if (server && *server != 0) object.set("server", server);
+
+        // move the data into the input array
         _input.append(std::move(object));
 
         // set the changed input
@@ -323,26 +351,60 @@ public:
     }
 
     /**
-     *  Add server data to the json
-     *  @param data
-     *  @param servername
+     *  Add key/value data to the json
+     *  @param  key         The key to add
+     *  @param  value       The value to add
+     *  @param  server      Default empty.
      */
-    void server(const std::string &data, const std::string &servername)
+    void kv(const Yothalot::Key &key, const Yothalot::Value &value, const char *server)
     {
         // initialize a simple json object
         JSON::Object object;
 
-        // set the data property
-        object.set("data", data);
+        // set the key in the json
+        object.set("key", toJson(key));
 
-        // set the server name
-        object.set("server", servername);
+        // set the value in the json
+        object.set("value", toJson(key));
 
-        // and move the data into the input array
+        // set the server if present
+        if (server && *server != 0) object.set("server", server);
+
+        // move the data into the input array
         _input.append(std::move(object));
 
         // set the changed input
         set("input", _input);
+    }
+
+    /**
+     *  Add a directory to the json
+     *  @param  directory       The directory to add
+     *  @param  server          The server to add the directory to
+     */
+    void directory(const char *dirname, bool remove, const char *server)
+    {
+        // initialize a simple json object
+        JSON::Object object;
+
+        // set the dirname
+        object.set("dirname", dirname);
+
+        // set whether or not to remove
+        object.set("remove", remove);
+
+        // set the server if present
+        if (server && *server != 0) object.set("server", server);
+    }
+
+    /**
+     *  Get the version
+     *  @return int
+     */
+    int version() const
+    {
+        // get the info from the json
+        return integer("version");
     }
 
     /**

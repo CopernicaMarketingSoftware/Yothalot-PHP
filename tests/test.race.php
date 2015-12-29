@@ -16,10 +16,7 @@ require_once('Race.php');
 $test = new MyRace("test");
 
 // create the connection
-$master = new Yothalot\Connection(array(
-    "host"  =>  "localhost",
-    "vhost" =>  "gluster",
-));
+$master = new Yothalot\Connection();
 
 // create the new job
 $job = new Yothalot\Job($master, $test);
@@ -29,6 +26,9 @@ $job->add(1);
 $job->add("2");
 for ($i = 4; $i < 1124; $i++) $job->add($i);
 $job->add(3);
+
+// start the job
+$job->start();
 
 // start the job and wait for the result
 $result = $job->wait();

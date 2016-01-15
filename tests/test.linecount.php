@@ -57,7 +57,6 @@ function assign($job, $path)
     foreach($objects as $name => $object) {
 
         $job->add($object->getPathName());
-
     }
 }
 

@@ -113,10 +113,14 @@ extern "C" {
             Php::ByVal("value", Php::Type::Numeric)
         }).method("maxprocesses", &Job::maxprocesses, {
             Php::ByVal("value", Php::Type::Numeric)
-        }).method("maxfiles", &Job::maxfiles, {
-            Php::ByVal("value", Php::Type::Numeric)
-        }).method("maxbytes", &Job::maxbytes, {
-            Php::ByVal("value", Php::Type::Numeric)
+        }).method("maxfiles", &Job::maxfiles, { // old behaviour causes all the same, new behaviour has differences
+            Php::ByVal("mapper", Php::Type::Numeric),
+            Php::ByVal("reducer", Php::Type::Numeric, false),
+            Php::ByVal("finalizer", Php::Type::Numeric, false)
+        }).method("maxbytes", &Job::maxbytes, { // old behaviour sets all values to the same value, new behaviour set individually
+            Php::ByVal("mapper", Php::Type::Numeric),
+            Php::ByVal("reducer", Php::Type::Numeric, false),
+            Php::ByVal("finalizer", Php::Type::Numeric, false)
         }).method("maxmappers", &Job::maxmappers, {
             Php::ByVal("value", Php::Type::Numeric)
         }).method("maxreducers", &Job::maxreducers, {

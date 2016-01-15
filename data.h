@@ -268,24 +268,24 @@ public:
      *  Set the max number of files
      *  @param  value
      */
-    void maxfiles(int64_t value)
+    void maxfiles(int64_t mapper, int64_t reducer, int64_t finalizer)
     {
         // set the limit files property on the mapper, reducer and finalizer
-        object("mapper").object("limit").set("files", value);
-        object("reducer").object("limit").set("files", value);
-        object("finalizer").object("limit").set("files", value);
+        if (mapper) object("mapper").object("limit").set("files", mapper);
+        if (reducer) object("reducer").object("limit").set("files", reducer);
+        if (finalizer) object("finalizer").object("limit").set("files", finalizer);
     }
 
     /**
      *  Set the max number of bytes
      *  @param value
      */
-    void maxbytes(int64_t value)
+    void maxbytes(int64_t mapper, int64_t reducer, int64_t finalizer)
     {
         // set the limit files property on the mapper, reducer, and finalizer
-        object("mapper").object("limit").set("bytes", value);
-        object("reducer").object("limit").set("bytes", value);
-        object("finalizer").object("limit").set("bytes", value);
+        if (mapper) object("mapper").object("limit").set("bytes", mapper);
+        if (reducer) object("reducer").object("limit").set("bytes", reducer);
+        if (finalizer) object("finalizer").object("limit").set("bytes", finalizer);
     }
 
     /**

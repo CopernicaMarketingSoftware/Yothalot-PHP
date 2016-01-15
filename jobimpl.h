@@ -111,7 +111,15 @@ public:
             _directory.reset(new Directory());
 
             // the directory exists, set this in the json, we want the cleanup and no server
-            _json.directory(_directory->relative(), true, "");
+            if (version() == 2) _json.directory(_directory->relative(), true, "");
+
+            // either a race job or an old mapreduce job; add the directory directly
+            else
+            {
+                // add the directory
+                _json.directory(_directory->relative());
+            }
+
         }
         catch (...)
         {
@@ -262,13 +270,13 @@ public:
      *  @param value
      *  @return bool
      */
-    bool maxfiles(int value)
+    bool maxfiles(int mapper, int reducer, int finalizer)
     {
         // not possible if job has already started
         if (_started) return false;
 
         // set in the json
-        _json.maxfiles(value);
+        _json.maxfiles(mapper, reducer, finalizer);
 
         // done
         return true;
@@ -279,13 +287,13 @@ public:
      *  @param value
      *  @return bool
      */
-    bool maxbytes(uint64_t value)
+    bool maxbytes(uint64_t mapper, uint64_t reducer, uint64_t finalizer)
     {
         // not possible if job has already started
         if (_started) return false;
 
         // set in the json
-        _json.maxbytes(value);
+        _json.maxbytes(mapper, reducer, finalizer);
 
         // done
         return true;

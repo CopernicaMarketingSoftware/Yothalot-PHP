@@ -171,11 +171,13 @@ public:
      */
     Php::Value maxfiles(Php::Parameters &params)
     {
-        // extract the number
-        int64_t maxfiles = params[0].numericValue();
+        // extract the number, old behavior is all the same value
+        int64_t mapperfiles = params[0].numericValue();
+        int64_t reducerfiles = params.size() >= 2 ? params[1].numericValue() : mapperfiles;
+        int64_t finalizerfiles = params.size() >= 3 ? params[2].numericValue() : mapperfiles;
 
         // pass on to the implementation object
-        if (!_impl->maxfiles(maxfiles)) return nullptr;
+        if (!_impl->maxfiles(mapperfiles, reducerfiles, finalizerfiles)) return nullptr;
 
         // allow chaining
         return this;
@@ -188,11 +190,13 @@ public:
      */
     Php::Value maxbytes(Php::Parameters &params)
     {
-        // extract the number
-        int64_t maxbytes = params[0].numericValue();
+        // extract the number, old behavior is all the same value
+        int64_t mapperbytes = params[0].numericValue();
+        int64_t reducerbytes = params.size() >= 2 ? params[1].numericValue() : mapperbytes;
+        int64_t finalizerbytes = params.size() >= 3 ? params[2].numericValue() : mapperbytes;
 
-        // pass on to the implementation
-        if (!_impl->maxbytes(maxbytes)) return nullptr;
+        // pass on to the implementation object
+        if (!_impl->maxbytes(mapperbytes, reducerbytes, finalizerbytes)) return nullptr;
 
         // allow chaining
         return this;

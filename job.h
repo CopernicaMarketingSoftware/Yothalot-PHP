@@ -219,7 +219,7 @@ public:
         }
 
         // otherwise redirect directly to the multiple added case
-        else if (params.size() == 2)
+        else if (params.size() >= 2)
         {
             // create the key and the value from the parameters
             auto key = toTuple(params[0]);

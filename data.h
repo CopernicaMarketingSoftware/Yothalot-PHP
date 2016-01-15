@@ -365,7 +365,7 @@ public:
         object.set("key", toJson(key));
 
         // set the value in the json
-        object.set("value", toJson(key));
+        object.set("value", toJson(value));
 
         // set the server if present
         if (server && *server != 0) object.set("server", server);
@@ -378,7 +378,7 @@ public:
     }
 
     /**
-     *  Add a directory to the json
+     *  Add a directory to the json nonintrusively
      *  @param  directory       The directory to add
      *  @param  server          The server to add the directory to
      */
@@ -395,6 +395,12 @@ public:
 
         // set the server if present
         if (server && *server != 0) object.set("server", server);
+
+        // move the data into the input array
+        _input.append(std::move(object));
+
+        // set the changed input
+        set("input", _input);
     }
 
     /**

@@ -120,6 +120,7 @@ protected:
             if (input.isNumber(i))    output.append(input.number(i));
             else if (input.isNull(i)) output.append(nullptr);
             else                      output.append(input.string(i));
+
         }
 
         // return the output

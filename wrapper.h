@@ -45,18 +45,6 @@ private:
     Php::Object _object;
 
     /**
-     *  Function to map key and value to a key/value pair
-     *  @todo remove the "override" comment once the new yothalot library has been released
-     *  @param  key         The key to map
-     *  @param  value       The value to map
-     *  @param  reducer     The result object to which key/value pairs can be mapped
-     */
-    virtual void map(const Yothalot::Key &key, const Yothalot::Value &value, Yothalot::Reducer &reducer) /* overrride */
-    {
-        // @todo implementation
-    }
-
-    /**
      *  Function to map a log-record to a key/value pair
      *  @param  record      The record to map
      *  @param  reducer     The result object to which key/value pairs can be mapped

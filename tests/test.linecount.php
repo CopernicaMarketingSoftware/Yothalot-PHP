@@ -12,16 +12,26 @@
 require_once('LineCount.php');
 
 /**
- *  The output file on the gluster
- *  @var string
+ *  The WordCount class wrote its output to a file on the distributed file
+ *  system. To find out what the absolute path name of this file is on this
+ *  machine, we make use of the Yothalot\Path class to turn the relative name
+ *  into an absolute path (GlusterFS must be mounted on this machine)
+ *
+ *  @var Yothalot\Path
  */
-$output = "linecount-results.txt";
+$path = new Yothalot\Path("linecount-results.txt");
+
+
+/**
+ *  Unlink the result upon start, to make sure that we don't display the previous result.
+ */
+unlink($path->absolute());
 
 /**
  *  Create an instance of the WordCount algorithm
  *  @var WordCount
  */
-$wordcount = new LineCount($output);
+$wordcount = new LineCount($path->relative());
 
 /**
  *  We want to send this WordCount instance to the Yothalot master. To do this,
@@ -74,16 +84,6 @@ $job->start();
  *  Wait for the result of the map reduce job
  */
 $job->wait();
-
-/**
- *  The WordCount class wrote its output to a file on the distributed file
- *  system. To find out what the absolute path name of this file is on this
- *  machine, we  make use of the Yothalot\Path class to turn the relative name
- *  into an absolute path (GlusterFS must be mounted on this machine)
- *
- *  @var Yothalot\Path
- */
-$path = new Yothalot\Path($output);
 
 /**
  *  Show the found words

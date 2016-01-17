@@ -388,7 +388,7 @@ public:
         JSON::Object object;
 
         // set the dirname
-        object.set("dirname", dirname);
+        object.set("directory", dirname);
 
         // set whether or not to remove
         object.set("remove", remove);

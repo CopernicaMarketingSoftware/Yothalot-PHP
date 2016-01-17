@@ -15,6 +15,11 @@ require_once('WordCount.php');
 $path = new Yothalot\Path("wordcount-results.txt");
 
 /**
+ *  Unlink the result upon start, to make sure that we don't display the previous result.
+ */
+unlink($path->absolute());
+
+/**
  *  Create an instance of the WordCount algorithm
  *  @var WordCount
  */

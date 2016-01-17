@@ -127,6 +127,7 @@ class WordCount implements Yothalot\MapReduce
      */
     public function write($key, $value)
     {
+        // if we've not added the file yet
         if (!$this->file)
         {
             // the output file is stored on the gluster

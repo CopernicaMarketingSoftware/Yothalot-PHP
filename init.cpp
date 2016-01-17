@@ -238,7 +238,7 @@ Php::Value yothalotInit(Php::Parameters &params)
     if (strcasecmp(params[0].rawValue(), "run") == 0) result = run(input);
 
     // check the type of task to run that is part of the mapreduce algorithm
-    if (strcasecmp(params[0].rawValue(), "kvmapper")    == 0) result = kvmap(input);
+    if (strcasecmp(params[0].rawValue(), "kvmapper")       == 0) result = kvmap(input);
     else if (strcasecmp(params[0].rawValue(), "mapper")    == 0) result = map(input);
     else if (strcasecmp(params[0].rawValue(), "reducer")   == 0) result = reduce(input);
     else if (strcasecmp(params[0].rawValue(), "finalizer") == 0) result = write(input);

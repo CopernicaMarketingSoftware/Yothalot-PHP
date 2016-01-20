@@ -159,6 +159,18 @@ public:
             // remember algorithm type
             _algorithm = algorithm_race;
         }
+
+        // or are we a regular task
+        else if (algo.instanceOf("Yothalot\\Task"))
+        {
+            // set the json properties
+            set("executable", "php");
+            set("arguments", JSON::Array({"-r", "exit(YothalotInit('run'));"}));
+            set("stdin", input);
+
+            // remember algorithm type
+            _algorithm = algorithm_job;
+        }
     }
 
     /**
@@ -180,6 +192,7 @@ public:
      */
     bool isRace() const { return _algorithm == algorithm_race; }
     bool isMapReduce() const { return _algorithm == algorithm_mapreduce; }
+    bool isTask() const { return _algorithm == algorithm_job; }
 
     /**
      *  Publish the data to a connection

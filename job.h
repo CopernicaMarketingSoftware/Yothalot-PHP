@@ -76,7 +76,7 @@ public:
 
         // check type of parameters
         if (!connection.instanceOf("Yothalot\\Connection")) throw Php::Exception("Connection is not an instance of Yothalot\\Connection");
-        if (!algo.instanceOf("Yothalot\\MapReduce") && !algo.instanceOf("Yothalot\\MapReduce2") && !algo.instanceOf("Yothalot\\Race")) throw Php::Exception("Connection is not an instance of Yothalot\\MapReduce, Yothalot\\MapReduce2 or Yothalot\\Race.");
+        if (!algo.instanceOf("Yothalot\\MapReduce") && !algo.instanceOf("Yothalot\\MapReduce2") && !algo.instanceOf("Yothalot\\Race") && !algo.instanceOf("Yothalot\\Task")) throw Php::Exception("Connection is not an instance of Yothalot\\MapReduce, Yothalot\\MapReduce2, Yothalot\\Race or Yothalot\\Task.");
 
         // prevent that exceptions bubble up
         try

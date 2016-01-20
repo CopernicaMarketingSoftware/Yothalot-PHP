@@ -253,6 +253,14 @@ extern "C" {
             Php::ByVal("data", Php::Type::String)
         }).method("includes");
 
+        // create the task interface
+        Php::Interface task("Task");
+
+        // register the interface methods
+        task.method("process", {
+            Php::ByVal("data", Php::Type::String)
+        }).method("includes");
+
         // move all the classes to the namespace
         ns.add(std::move(writer));
         ns.add(std::move(reducer));
@@ -263,6 +271,7 @@ extern "C" {
         ns.add(std::move(mapreduce));
         ns.add(std::move(kvmapreduce));
         ns.add(std::move(race));
+        ns.add(std::move(task));
         ns.add(std::move(input));
         ns.add(std::move(output));
         ns.add(std::move(record));

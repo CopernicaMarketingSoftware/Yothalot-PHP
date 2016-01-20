@@ -85,9 +85,6 @@ private:
     {
         // reset connection
         _connection = nullptr;
-
-        // it is not necessary as the connection was the only item in the 
-        // event loop, so the loop will stop anyway
     }
 
     /**
@@ -115,9 +112,6 @@ private:
         _connection.reset(new AMQP::TcpConnection(this, AMQP::Address(std::string(_json.c_str("host")), 5672,
                                                   ::AMQP::Login(std::string(_json.c_str("user")), std::string(_json.c_str("password"))),
                                                   std::string(_json.c_str("vhost")))));
-
-        // go run the event loop until the connection is connected
-        //_loop.run(_connection.get());
 
         // check if the connection still exists (connection will be reset by the
         // onError() function if the connection ran into a problem)
@@ -242,9 +236,6 @@ public:
 
         // publish the json
         channel.publish(_json.c_str("exchange"), queue, json.toString());
-
-        // do a single step, to hopefully send the message..
-        //_loop.step(_connection.get());
 
         // done
         return true;

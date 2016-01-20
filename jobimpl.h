@@ -111,7 +111,7 @@ public:
             _directory.reset(new Directory());
 
             // the directory exists, set this in the json, we want the cleanup and no server
-            if (version() == 2) _json.directory(_directory->relative(), true, "");
+            if (version() == 2) _json.directory(_directory->relative(), true, nullptr);
 
             // either a race job or an old mapreduce job; add the directory directly
             else
@@ -155,7 +155,7 @@ public:
     /**
      *  Destructor
      */
-    virtual ~JobImpl() {}
+    virtual ~JobImpl() = default;
 
     /**
      *  Simple checkers for race and mapreduce
@@ -402,8 +402,19 @@ public:
         // they use different protocols. stick to one)
         if (_started || !isMapReduce() || version() != 2) return false;
 
-        // only add it to the json, faster for distinct files
-        _json.kv(key, value, server);
+        // have we been unserialized? in that case adding data to the json
+        // is likely not going to work, since the job will be started from
+        // somewhere else, that has a different copy of the json by itself
+        if (!_core)
+        {
+            // add the data to an output file
+            output()->add(Yothalot::Record{ Yothalot::KeyValue{ key, value }});
+        }
+        else
+        {
+            // only add it to the json, faster for distinct files
+            _json.kv(key, value, server);
+        }
 
         // we've successfully added it
         return true;

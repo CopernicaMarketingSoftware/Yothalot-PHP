@@ -139,6 +139,6 @@ public:
     /**
      *  Destructor
      */
-    virtual ~Wrapper() {}
+    virtual ~Wrapper() = default;
 };
 

@@ -26,7 +26,7 @@ class Data : public JSON::Object, private TupleHelper
 {
 private:
     /**
-     *  If the job is started on a node that is not mounter to glusterFS,
+     *  If the job is started on a node that is not mounted to glusterFS,
      *  the data is going to be stored in the JSON as well
      *  @var JSON::Array
      */
@@ -68,7 +68,7 @@ private:
         /**
          *  Destructor
          */
-        virtual ~Executable() {}
+        virtual ~Executable() = default;
     };
 
     /**
@@ -172,14 +172,16 @@ public:
     /**
      *  Destructor
      */
-    virtual ~Data() {}
+    virtual ~Data() = default;
 
     /**
      *  Simple checkers for race and mapreduce
-     *  @return bool
+     *
+     *  @todo:  Can we fix this for isRace as well?
+     *  @return Are we data for a specific algorithm?
      */
     bool isRace() const { return _algorithm == algorithm_race; }
-    bool isMapReduce() const { return _algorithm == algorithm_mapreduce; }
+    bool isMapReduce() const { return _algorithm == algorithm_mapreduce || contains("mapper"); }
 
     /**
      *  Publish the data to a connection
@@ -201,7 +203,28 @@ public:
      */
     const char *directory() const
     {
-        return isString("input") ? c_str("input") : nullptr;
+        // the input should be an object
+        if (!isArray("input")) return nullptr;
+
+        // retrieve the input object
+        auto input = array("input");
+
+        // "iterate" over all the keys
+        for (int i = 0; i < input.size(); ++i)
+        {
+            // retrieve the stored object
+            auto object = input.object(i);
+
+            // does this object point towards a directory
+            if (!object.contains("directory")) continue;
+
+            // we found a directory in the json
+            // @todo: should we check only for 'tmp' directories?
+            return object.c_str("directory");
+        }
+
+        // no directory found
+        return nullptr;
     }
 
     /**

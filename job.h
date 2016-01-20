@@ -230,7 +230,7 @@ public:
             auto value = toTuple(params[1]);
 
             // get the possible server
-            const char* server = params.size() >= 3 ? params[2].rawValue() : "";
+            const char* server = params.size() >= 3 ? params[2].rawValue() : nullptr;
 
             // pass on to the implementation object
             if (!_impl->add(key, value, server)) return nullptr;
@@ -255,7 +255,7 @@ public:
         auto value = toTuple(params[1]);
 
         // get the possible server
-        const char* server = params.size() >= 3 ? params[2].rawValue() : "";
+        const char* server = params.size() >= 3 ? params[2].rawValue() : nullptr;
 
         // immediately redirect
         if (!_impl->map(key, value, server)) return nullptr;
@@ -303,7 +303,7 @@ public:
         int64_t start = params.size() >= 2 ? params[1].numericValue() : 0;
         int64_t size = params.size() >= 3 ? params[2].numericValue() : 0;
         bool remove = params.size() >= 4 ? params[3].boolValue() : false;
-        const char *server = params.size() >= 5 ? params[4].rawValue() : "";
+        const char *server = params.size() >= 5 ? params[4].rawValue() : nullptr;
 
         // call the file function in the implementation
         if (!_impl->file(filename, (size_t)start, (size_t)size, remove, server)) return nullptr;

@@ -163,6 +163,7 @@ public:
      */
     bool isRace() const { return _json.isRace(); }
     bool isMapReduce() const { return _json.isMapReduce(); }
+    bool isTask() const { return _json.isTask(); }
 
     /**
      *  Simple checker for version
@@ -512,6 +513,16 @@ public:
 
         // consume the message from the temporary queue
         _result = std::make_shared<JSON::Object>(_tempqueue->consume());
+
+        // in case case of a task we may have the stderr in the main json right away
+        if (isTask() && _result->contains("stderr"))
+        {
+            // write the stderr to our warning stream
+            Php::warning << _result->c_str("stderr") << std::flush;
+
+            // and return false
+            return false;
+        }
 
         // did an error occur?
         if (!_result->contains("error")) return true;

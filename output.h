@@ -1,9 +1,9 @@
 /**
  *  Output.h
- * 
+ *
  *  Utility class for writing files in the same format as the intermediate files
  *  that are used by the mapreduce algorithm
- * 
+ *
  *  @author Emiel Bruijntjes <emiel.bruijntjes@copernica.com>
  *  @copyright 2015 Copernica BV
  */
@@ -16,7 +16,7 @@
 /**
  *  Class definition
  */
-class Output : public Php::Base
+class Output : public Php::Base, private TupleHelper
 {
 private:
     /**
@@ -136,6 +136,26 @@ public:
             default:                    Php::error << "Only integers, strings and NULL values are supported in Yothalot files" << std::flush;
             }
         }
+
+        // add the record to the file
+        _impl->add(record);
+
+        // allow chaining
+        return this;
+    }
+
+    /**
+     *  Add a key/value pair to the file. This can be re-opened by the yothalot cluster.
+     *  @param  params
+     *  @return Php::Value
+     */
+    Php::Value kv(Php::Parameters &params)
+    {
+        // need two parameters
+        if (params.size() != 2) Php::error << "Yothalot\\Output::kv($key, $value) requires two parameters" << std::flush;
+
+        // construct the record from the keyvalue
+        Yothalot::Record record(Yothalot::KeyValue(toTuple(params[0]), toTuple(params[1])));
 
         // add the record to the file
         _impl->add(record);

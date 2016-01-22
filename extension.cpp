@@ -147,6 +147,9 @@ extern "C" {
         }).method("add", &Output::add, {
             Php::ByVal("identifier", Php::Type::Numeric),
             Php::ByVal("fields", Php::Type::Array)
+        }).method("kv", &Output::kv, {
+            Php::ByVal("key", Php::Type::Null),
+            Php::ByVal("value", Php::Type::Null)
         }).method("name", &Output::name, {
         }).method("flush", &Output::flush, {
         }).method("size", &Output::size);

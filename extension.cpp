@@ -106,7 +106,7 @@ extern "C" {
             Php::ByVal("remove", Php::Type::Bool, false),
             Php::ByVal("server", Php::Type::String, false)
         }).method("directory", &Job::directory, { // new, v2 behaviour
-            Php::ByVal("dirname", Php::Type::String),
+            Php::ByVal("dirname", Php::Type::String, false),
             Php::ByVal("remove", Php::Type::Bool, false),
             Php::ByVal("server", Php::Type::String, false)
         }).method("modulo", &Job::modulo, {

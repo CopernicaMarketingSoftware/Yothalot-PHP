@@ -319,6 +319,9 @@ public:
      */
     Php::Value directory(Php::Parameters &params)
     {
+        // if we don't have any parameters we act as a get operation
+        if (params.empty()) return _impl->directory() ? _impl->directory() : nullptr;
+
         // get the params in c++
         auto dirname = params[0].rawValue();
         auto remove = params.size() >= 1 ? params[1].boolValue() : false;

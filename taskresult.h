@@ -78,15 +78,6 @@ public:
     }
 
     /**
-     *  Get the number of processes during the race
-     *  @return Php::Value
-     */
-    Php::Value processes() const
-    {
-        return _json.integer("processes");
-    }
-
-    /**
      *  Get the result, only used for races and regular jobs
      *  @return Php::Value
      */

@@ -189,7 +189,6 @@ extern "C" {
         taskResult.method("started",         &TaskResult::started)
                   .method("finished",        &TaskResult::finished)
                   .method("runtime",         &TaskResult::runtime)
-                  .method("processes",       &TaskResult::processes)
                   .method("result",          &TaskResult::result);
 
         // register stats methods

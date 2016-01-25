@@ -27,6 +27,7 @@
 #include "serialized.h"
 #include "raceresult.h"
 #include "mapreduceresult.h"
+#include "taskresult.h"
 #include <iostream>
 
 /**
@@ -366,6 +367,7 @@ public:
         // construct a result object
         if (_impl->isRace())           return Php::Object("Yothalot\\RaceResult", new RaceResult(_impl->result()));
         else if (_impl->isMapReduce()) return Php::Object("Yothalot\\MapReduceResult", new MapReduceResult(_impl->result()));
+        else if (_impl->isTask())      return Php::Object("Yothalot\\TaskResult", new TaskResult(_impl->result()));
 
         // if we somehow failed to create a result object we just return null
         return nullptr;

@@ -67,6 +67,7 @@ extern "C" {
         Php::Class<Record>          record         ("Record");
         Php::Class<MapReduceResult> mapReduceResult("MapReduceResult");
         Php::Class<RaceResult>      raceResult     ("RaceResult");
+        Php::Class<TaskResult>      taskResult     ("TaskResult");
         Php::Class<Stats>           stats          ("Stats");
         Php::Class<DataStats>       datastats      ("DataStats");
         Php::Class<Winner>          winner         ("Winner");
@@ -176,6 +177,7 @@ extern "C" {
                        .method("reducers",   &MapReduceResult::reducers)
                        .method("finalizers", &MapReduceResult::finalizers);
 
+        // register the race result methods
         raceResult.method("started",         &RaceResult::started)
                   .method("finished",        &RaceResult::finished)
                   .method("runtime",         &RaceResult::runtime)
@@ -183,6 +185,12 @@ extern "C" {
                   .method("result",          &RaceResult::result)
                   .method("winner",          &RaceResult::winner);
 
+        // register the task result methods
+        taskResult.method("started",         &TaskResult::started)
+                  .method("finished",        &TaskResult::finished)
+                  .method("runtime",         &TaskResult::runtime)
+                  .method("processes",       &TaskResult::processes)
+                  .method("result",          &TaskResult::result);
 
         // register stats methods
         stats.method("first",       &Stats::first)
@@ -280,6 +288,7 @@ extern "C" {
         ns.add(std::move(record));
         ns.add(std::move(mapReduceResult));
         ns.add(std::move(raceResult));
+        ns.add(std::move(taskResult));
         ns.add(std::move(stats));
         ns.add(std::move(datastats));
         ns.add(std::move(winner));

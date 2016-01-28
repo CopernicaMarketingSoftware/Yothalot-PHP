@@ -46,11 +46,19 @@ public:
      */
     void __construct(Php::Parameters &params)
     {
-        // construct the fullname class
-        _fullname.reset(new Yothalot::Fullname(base(), params[0].stringValue()));
+        try
+        {
+            // construct the fullname class
+            _fullname.reset(new Yothalot::Fullname(base(), params[0].stringValue()));
 
-        // check if we're valid, throw otherwise
-        if (!_fullname || !(*_fullname)) throw Php::Exception(params[0].stringValue() + " is not on a glusterfs mount");
+            // check if we're valid, throw otherwise
+            if (!_fullname || !(*_fullname)) throw Php::Exception(params[0].stringValue() + " is not on a glusterfs mount");
+        }
+        catch (const std::runtime_error &error)
+        {
+            // pass this on to PHP - where it can be handled
+            throw Php::Exception(error.what());
+        }
     }
 
     /**

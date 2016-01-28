@@ -296,6 +296,16 @@ extern "C" {
         // will result in `php -r "YothalotInit('mapper');"`
         extension.add("YothalotInit", &yothalotInit, { Php::ByVal("mode", Php::Type::String) });
 
+        // add all the ini settings for the connection
+        extension.add(Php::Ini{ "yothalot.host",         "localhost"    });
+        extension.add(Php::Ini{ "yothalot.user",         "guest"        });
+        extension.add(Php::Ini{ "yothalot.password",     "guest"        });
+        extension.add(Php::Ini{ "yothalot.vhost",        "/"            });
+        extension.add(Php::Ini{ "yothalot.exchange",     ""             });
+        extension.add(Php::Ini{ "yothalot.mapreduce",    "mapreduce"    });
+        extension.add(Php::Ini{ "yothalot.races",        "races"        });
+        extension.add(Php::Ini{ "yothalot.jobs",         "jobs"         });
+
         // add the ini property for the base directory
         extension.add(Php::Ini("yothalot.base-directory", ""));
 

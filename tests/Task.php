@@ -29,7 +29,7 @@ class Task implements Yothalot\Task
     /**
      *  We'll emit some really basic info in case the data is 3..
      */
-    function process($data)
+    function process()
     {
         return array("key1" => "one", "key2" => $this->output, "key3" => "three", "cwd" => getcwd());
     }

@@ -268,7 +268,6 @@ extern "C" {
 
         // register the interface methods
         task.method("process", {
-            Php::ByVal("data", Php::Type::String)
         }).method("includes");
 
         // move all the classes to the namespace

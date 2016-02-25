@@ -28,6 +28,7 @@
 #include "raceresult.h"
 #include "mapreduceresult.h"
 #include "taskresult.h"
+#include "errorresult.h"
 #include <iostream>
 
 /**
@@ -362,7 +363,7 @@ public:
     Php::Value wait()
     {
         // pass it on to the implementation object
-        if (!_impl->wait()) return nullptr;
+        if (!_impl->wait()) return Php::Object("Yothalot\\ErrorResult", new ErrorResult(_impl->result()));
 
         // construct a result object
         if (_impl->isRace())           return Php::Object("Yothalot\\RaceResult", new RaceResult(_impl->result()));

@@ -14,6 +14,7 @@
 
 #include "mapreduceresult.h"
 #include "raceresult.h"
+#include "errorresult.h"
 #include "stats.h"
 #include "datastats.h"
 #include "writer.h"
@@ -68,6 +69,7 @@ extern "C" {
         Php::Class<MapReduceResult> mapReduceResult("MapReduceResult");
         Php::Class<RaceResult>      raceResult     ("RaceResult");
         Php::Class<TaskResult>      taskResult     ("TaskResult");
+        Php::Class<ErrorResult>     errorResult    ("ErrorResult");
         Php::Class<Stats>           stats          ("Stats");
         Php::Class<DataStats>       datastats      ("DataStats");
         Php::Class<Winner>          winner         ("Winner");
@@ -190,6 +192,15 @@ extern "C" {
                   .method("finished",        &TaskResult::finished)
                   .method("runtime",         &TaskResult::runtime)
                   .method("result",          &TaskResult::result);
+
+        // register the error methods
+        errorResult.method("started",        &ErrorResult::started)
+                   .method("finished",       &ErrorResult::finished)
+                   .method("executable",     &ErrorResult::executable)
+                   .method("arguments",      &ErrorResult::arguments)
+                   .method("stdin",          &ErrorResult::stdin)
+                   .method("stdout",         &ErrorResult::stdout)
+                   .method("stderr",         &ErrorResult::stderr);
 
         // register stats methods
         stats.method("first",       &Stats::first)

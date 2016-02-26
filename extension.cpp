@@ -298,6 +298,7 @@ extern "C" {
         ns.add(std::move(mapReduceResult));
         ns.add(std::move(raceResult));
         ns.add(std::move(taskResult));
+        ns.add(std::move(errorResult));
         ns.add(std::move(stats));
         ns.add(std::move(datastats));
         ns.add(std::move(winner));

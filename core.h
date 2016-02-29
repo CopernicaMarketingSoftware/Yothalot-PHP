@@ -118,7 +118,7 @@ private:
         if (_connection) return true;
 
         // report error to PHP space
-        Php::warning << _error << std::endl;
+        if (!_error.empty()) Php::warning << _error << std::endl;
 
         // done
         return true;

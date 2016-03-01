@@ -37,13 +37,13 @@ public:
      *  Constructor
      *  @param  output
      */
-    ErrorResult(const JSON::Object &output) : _json(output) {}
+    ErrorResult(const JSON::Object &output) : _json(output.isObject("error") ? output.object("error") : output) {}
 
     /**
      *  Constructor
      *  @param  output
      */
-    ErrorResult(const std::shared_ptr<JSON::Object> &output) : _json(*output) {}
+    ErrorResult(const std::shared_ptr<JSON::Object> &output) : ErrorResult(*output) {}
 
     /**
      *  Destructor

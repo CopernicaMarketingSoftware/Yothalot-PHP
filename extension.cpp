@@ -53,26 +53,23 @@ extern "C" {
         // for the entire duration of the process (that's why it's static)
         static Php::Extension extension("Yothalot", THE_VERSION);
 
-        // start off by creating the Yothalot namespace
-        Php::Namespace ns("Yothalot");
-
         // create the classes
-        Php::Class<Writer>          writer         ("Writer");
-        Php::Class<Reducer>         reducer        ("Reducer");
-        Php::Class<Values>          values         ("Values");
-        Php::Class<Connection>      connection     ("Connection");
-        Php::Class<Job>             job            ("Job");
-        Php::Class<Path>            path           ("Path");
-        Php::Class<Output>          output         ("Output");
-        Php::Class<Input>           input          ("Input");
-        Php::Class<Record>          record         ("Record");
-        Php::Class<MapReduceResult> mapReduceResult("MapReduceResult");
-        Php::Class<RaceResult>      raceResult     ("RaceResult");
-        Php::Class<TaskResult>      taskResult     ("TaskResult");
-        Php::Class<ErrorResult>     errorResult    ("ErrorResult");
-        Php::Class<Stats>           stats          ("Stats");
-        Php::Class<DataStats>       datastats      ("DataStats");
-        Php::Class<Winner>          winner         ("Winner");
+        Php::Class<Writer>          writer         ("Yothalot\\Writer");
+        Php::Class<Reducer>         reducer        ("Yothalot\\Reducer");
+        Php::Class<Values>          values         ("Yothalot\\Values");
+        Php::Class<Connection>      connection     ("Yothalot\\Connection");
+        Php::Class<Job>             job            ("Yothalot\\Job");
+        Php::Class<Path>            path           ("Yothalot\\Path");
+        Php::Class<Output>          output         ("Yothalot\\Output");
+        Php::Class<Input>           input          ("Yothalot\\Input");
+        Php::Class<Record>          record         ("Yothalot\\Record");
+        Php::Class<MapReduceResult> mapReduceResult("Yothalot\\MapReduceResult");
+        Php::Class<RaceResult>      raceResult     ("Yothalot\\RaceResult");
+        Php::Class<TaskResult>      taskResult     ("Yothalot\\TaskResult");
+        Php::Class<ErrorResult>     errorResult    ("Yothalot\\ErrorResult");
+        Php::Class<Stats>           stats          ("Yothalot\\Stats");
+        Php::Class<DataStats>       datastats      ("Yothalot\\DataStats");
+        Php::Class<Winner>          winner         ("Yothalot\\Winner");
 
         // register writer functions
         writer.method("emit", &Writer::emit, {
@@ -232,7 +229,7 @@ extern "C" {
 
 
         // create the map reduce interface
-        Php::Interface mapreduce("MapReduce");
+        Php::Interface mapreduce("Yothalot\\MapReduce");
 
         // register the interface methods
         mapreduce.method("map", {
@@ -250,7 +247,7 @@ extern "C" {
         // create an interface for the kvmapreduce, because we cannot
         // create an interface with optional parameters so that the old mapreduce
         // keeps working as it did
-        Php::Interface kvmapreduce("MapReduce2");
+        Php::Interface kvmapreduce("Yothalot\\MapReduce2");
 
         // register the interface methods
         kvmapreduce.method("map", {
@@ -267,7 +264,7 @@ extern "C" {
         }).method("includes");
 
         // create the race interface
-        Php::Interface race("Race");
+        Php::Interface race("Yothalot\\Race");
 
         // register the interface methods
         race.method("process", {
@@ -275,33 +272,33 @@ extern "C" {
         }).method("includes");
 
         // create the task interface
-        Php::Interface task("Task");
+        Php::Interface task("Yothalot\\Task");
 
         // register the interface methods
         task.method("process", {
         }).method("includes");
 
-        // move all the classes to the namespace
-        ns.add(std::move(writer));
-        ns.add(std::move(reducer));
-        ns.add(std::move(values));
-        ns.add(std::move(connection));
-        ns.add(std::move(job));
-        ns.add(std::move(path));
-        ns.add(std::move(mapreduce));
-        ns.add(std::move(kvmapreduce));
-        ns.add(std::move(race));
-        ns.add(std::move(task));
-        ns.add(std::move(input));
-        ns.add(std::move(output));
-        ns.add(std::move(record));
-        ns.add(std::move(mapReduceResult));
-        ns.add(std::move(raceResult));
-        ns.add(std::move(taskResult));
-        ns.add(std::move(errorResult));
-        ns.add(std::move(stats));
-        ns.add(std::move(datastats));
-        ns.add(std::move(winner));
+        // move all the classes to the extension
+        extension.add(std::move(writer));
+        extension.add(std::move(reducer));
+        extension.add(std::move(values));
+        extension.add(std::move(connection));
+        extension.add(std::move(job));
+        extension.add(std::move(path));
+        extension.add(std::move(mapreduce));
+        extension.add(std::move(kvmapreduce));
+        extension.add(std::move(race));
+        extension.add(std::move(task));
+        extension.add(std::move(input));
+        extension.add(std::move(output));
+        extension.add(std::move(record));
+        extension.add(std::move(mapReduceResult));
+        extension.add(std::move(raceResult));
+        extension.add(std::move(taskResult));
+        extension.add(std::move(errorResult));
+        extension.add(std::move(stats));
+        extension.add(std::move(datastats));
+        extension.add(std::move(winner));
 
         // add the init method for use on the command line to our namespace, this
         // will result in `php -r "YothalotInit('mapper');"`
@@ -319,9 +316,6 @@ extern "C" {
 
         // add the ini property for the base directory
         extension.add(Php::Ini("yothalot.base-directory", ""));
-
-        // add the classes to the extension
-        extension.add(std::move(ns));
 
         // return the extension
         return extension;

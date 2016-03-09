@@ -95,8 +95,17 @@ public:
         // @todo  We should be able to actually flush the Output without closing it entirely etc
         //        Unfortunately this is not possible since the SLZ4 SplitCompressor hold internal
         //        state that cannot be flushed.
-        if (_splitsize > 0) _impl.reset(new Yothalot::Output(_name.data(), _splitsize));
-        else _impl.reset(new Yothalot::Output(_name.data()));
+        if (_splitsize > 0)
+        {
+            _impl.reset(new Yothalot::Output(_name.data(), _splitsize));
+        }
+        else
+        {
+            // The initial object needs to be destructed before we can
+            // construct the new object
+            _impl.reset(nullptr);
+            _impl.reset(new Yothalot::Output(_name.data()));
+        }
 
         // allow chaining
         return this;

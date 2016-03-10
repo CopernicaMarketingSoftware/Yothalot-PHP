@@ -88,6 +88,25 @@ public:
             return 0;
         }
     }
+    
+    /**
+     *  Is the input file a valid log file
+     *  @return Php::Value
+     */
+    Php::Value valid()
+    {
+        // prevent exceptions
+        try
+        {   
+            // create impl object
+            return (bool) Yothalot::Input(_name.data(), _seek, _bytes).valid();
+        }
+        catch (const std::runtime_error &exception)
+        {
+            // if we end up here we clearly are not valid
+            return false;
+        }
+    }
 
     /**
      *  Retrieve an instance of the iterator

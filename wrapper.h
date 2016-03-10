@@ -33,12 +33,6 @@ class Wrapper :
 {
 private:
     /**
-     *  The actual C++ task object
-     *  @var std::unique_ptr<Yothalot::SubTask>
-     */
-    std::unique_ptr<Yothalot::SubTask> _task;
-
-    /**
      *  The PHP "Yothalot\MapReduce" or "Yothalot\MapReduce2" object that holds the implementation to all methods
      *  @var Php::Object
      */

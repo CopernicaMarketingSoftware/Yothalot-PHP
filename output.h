@@ -97,6 +97,9 @@ public:
         //        state that cannot be flushed.
         if (_splitsize > 0)
         {
+            // The initial object needs to be destructed before we can
+            // construct the new object
+            _impl.reset(nullptr);
             _impl.reset(new Yothalot::Output(_name.data(), _splitsize));
         }
         else

@@ -445,6 +445,9 @@ public:
      */
     int version() const
     {
+        // if version is not set we assume version 1
+        if (!contains("version")) return 1;
+        
         // get the info from the json
         return integer("version");
     }

@@ -161,7 +161,8 @@ extern "C" {
             Php::ByVal("bytes", Php::Type::Numeric, false)
         }).method("name", &Input::name, {
         }).method("size", &Input::size)
-          .method("valid", &Input::valid);
+          .method("valid", &Input::valid)
+          .method("next", &Input::next);
 
         // register record methods
         record.method("identifier", &Record::identifier, {

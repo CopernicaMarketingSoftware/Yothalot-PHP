@@ -42,6 +42,13 @@ private:
      */
     std::size_t _bytes;
 
+    /**
+     *  The input object that is used if the next() method is called
+     *  @var std::shared_ptr<Yothalot::Input>
+     */
+    std::shared_ptr<Yothalot::Input> _input;
+    
+
 public:
     /**
      *  The PHP constructor
@@ -116,6 +123,34 @@ public:
     {
         // construct the new iterator
         return new InputIterator(this, _name, _seek, _bytes);
+    }
+    
+    /**
+     *  Get the next record
+     *  @return Php::Value
+     */
+    Php::Value next()
+    {
+        // prevent exceptions
+        try
+        {
+            // do we already have an input object?
+            if (_input == nullptr) _input = std::make_shared<Yothalot::Input>(_name.data(), _seek, _bytes);
+            
+            // object must be valid
+            if (!_input->valid()) return nullptr;
+            
+            // construct a yothalot record
+            auto record = std::make_shared<Yothalot::Record>(*_input);
+            
+            // return object
+            return Php::Object("Yothalot\\Record", new Record(record));
+        }
+        catch (...)
+        {
+            // object is in an invalid state
+            return nullptr;
+        }
     }
 };
 

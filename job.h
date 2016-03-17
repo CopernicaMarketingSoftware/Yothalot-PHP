@@ -78,7 +78,7 @@ public:
 
         // check type of parameters
         if (!connection.instanceOf("Yothalot\\Connection")) throw Php::Exception("Connection is not an instance of Yothalot\\Connection");
-        if (!algo.instanceOf("Yothalot\\MapReduce") && !algo.instanceOf("Yothalot\\MapReduce2") && !algo.instanceOf("Yothalot\\Race") && !algo.instanceOf("Yothalot\\Task")) throw Php::Exception("Connection is not an instance of Yothalot\\MapReduce, Yothalot\\MapReduce2, Yothalot\\Race or Yothalot\\Task.");
+        if (!algo.instanceOf("Yothalot\\MapReduce") && !algo.instanceOf("Yothalot\\Race") && !algo.instanceOf("Yothalot\\Task")) throw Php::Exception("Connection is not an instance of Yothalot\\MapReduce, Yothalot\\Race or Yothalot\\Task.");
 
         // prevent that exceptions bubble up
         try
@@ -211,21 +211,7 @@ public:
      */
     Php::Value add(Php::Parameters &params)
     {
-        // this is the old implementation
-        if (params.size() == 1)
-        {
-            // serialize and base64 encode the data to ensure that no null character appear in it
-            auto data = Php::call("base64_encode", Php::call("serialize", params[0])).stringValue();
-
-            // pass on to the implementation object
-            if (!_impl->add(data)) return nullptr;
-
-            // allow chaining
-            return this;
-        }
-
-        // otherwise redirect directly to the multiple added case
-        else if (params.size() >= 2)
+        if (params.size() >= 2)
         {
             // create the key and the value from the parameters
             auto key = toTuple(params[0]);

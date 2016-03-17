@@ -90,7 +90,7 @@ extern "C" {
         // register the methods on our php classes
         job.method("__construct", &Job::__construct, {
             Php::ByVal("connection", "Yothalot\\Connection"),
-            Php::ByVal("algorithm") // This should be either Yothalot\MapReduce, Yothalot\MapReduce2 or Yothalot\Race
+            Php::ByVal("algorithm") // This should be either Yothalot\MapReduce, Yothalot\MapReduce2, Yothalot\Race or Yothalot\Task
         }).method("add", &Job::add, { // old, v1 on single argument. new, singular keys/values otherwise for more arguments
             Php::ByVal("key", Php::Type::Null),
             Php::ByVal("value", Php::Type::Null, false),
@@ -217,7 +217,6 @@ extern "C" {
                  .method("bytes",   &DataStats::bytes);
 
         // register winner methods
-                // register stats methods
         winner.method("input",    &Winner::input)
               .method("output",   &Winner::output)
               .method("error",    &Winner::error)
@@ -235,24 +234,6 @@ extern "C" {
 
         // register the interface methods
         mapreduce.method("map", {
-            Php::ByVal("record", Php::Type::Null),
-            Php::ByVal("reducer", "Yothalot\\Reducer")
-        }).method("reduce", {
-            Php::ByVal("key", Php::Type::Null),
-            Php::ByVal("values", "Yothalot\\Values"),
-            Php::ByVal("writer", "Yothalot\\Writer")
-        }).method("write", {
-            Php::ByVal("key", Php::Type::Null),
-            Php::ByVal("value", Php::Type::Null)
-        }).method("includes");
-
-        // create an interface for the kvmapreduce, because we cannot
-        // create an interface with optional parameters so that the old mapreduce
-        // keeps working as it did
-        Php::Interface kvmapreduce("Yothalot\\MapReduce2");
-
-        // register the interface methods
-        kvmapreduce.method("map", {
             Php::ByVal("key", Php::Type::Null),
             Php::ByVal("value", Php::Type::Null),
             Php::ByVal("reducer", "Yothalot\\Reducer")
@@ -264,6 +245,10 @@ extern "C" {
             Php::ByVal("key", Php::Type::Null),
             Php::ByVal("value", Php::Type::Null)
         }).method("includes");
+
+        // we alias MapReduce2 to MapReduce
+        Php::Interface mapreduce2("Yothalot\\MapReduce2");
+        mapreduce2.extends(mapreduce);
 
         // create the race interface
         Php::Interface race("Yothalot\\Race");
@@ -288,7 +273,7 @@ extern "C" {
         extension.add(std::move(job));
         extension.add(std::move(path));
         extension.add(std::move(mapreduce));
-        extension.add(std::move(kvmapreduce));
+        extension.add(std::move(mapreduce2));
         extension.add(std::move(race));
         extension.add(std::move(task));
         extension.add(std::move(input));

@@ -111,7 +111,7 @@ public:
             _directory.reset(new Directory());
 
             // the directory exists, set this in the json, we want the cleanup and no server
-            if (version() == 2) _json.directory(_directory->relative(), true, nullptr);
+            if (_json.isMapReduce()) _json.directory(_directory->relative(), true, nullptr);
 
             // either a race job or an old mapreduce job; add the directory directly
             else
@@ -164,12 +164,6 @@ public:
     bool isRace() const { return _json.isRace(); }
     bool isMapReduce() const { return _json.isMapReduce(); }
     bool isTask() const { return _json.isTask(); }
-
-    /**
-     *  Simple checker for version
-     *  @return int
-     */
-    int version() const { return _json.version(); }
 
     /**
      *  Relative path name of the temporary directory
@@ -341,7 +335,7 @@ public:
     bool add(const std::string &data)
     {
         // impossible if already started and in the newer versions, this should be replaced with an empty key for example
-        if (_started || version() != 1) return false;
+        if (_started) return false;
 
         // the output file to which we're going to write
         auto *out = output();
@@ -377,7 +371,7 @@ public:
     bool add(const Yothalot::Key &key, const Yothalot::Value &value, const char *server)
     {
         // impossible if already started (is it?)
-        if (_started || !isMapReduce() || version() < 2) return false;
+        if (_started || !isMapReduce()) return false;
 
         // get the output file we're going to write
         auto out = output();
@@ -401,7 +395,7 @@ public:
     {
         // impossible if already started (is it?) and impossible in older versions (we cannot mishmash the files because
         // they use different protocols. stick to one)
-        if (_started || !isMapReduce() || version() != 2) return false;
+        if (_started || !isMapReduce()) return false;
 
         // have we been unserialized? in that case adding data to the json
         // is likely not going to work, since the job will be started from
@@ -432,7 +426,7 @@ public:
     bool file(const char *filename, size_t start, size_t size, bool remove, const char *server)
     {
         // cannot add the file if already started
-        if (_started || version() != 2) return false;
+        if (_started) return false;
 
         // in this case, we have to use the json to transfer the data
         _json.file(filename, start, size, remove, server);
@@ -450,7 +444,7 @@ public:
     bool directory(const char *dirname, bool remove, const char *server)
     {
         // cannot add the file if already started
-        if (_started || version() != 2) return false;
+        if (_started) return false;
 
         // in this case, we have to use the json to transfer the data
         _json.directory(dirname, remove, server);

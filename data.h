@@ -116,30 +116,13 @@ public:
         InputData input(algo);
 
         // in case we're a map reduce algorithm we set a modulo, mapper, reducer and writer
-        if (algo.instanceOf("Yothalot\\MapReduce"))
+        if (algo.instanceOf("Yothalot\\MapReduce") || algo.instanceOf("Yothalot\\MapReduce2"))
         {
             // set default limits
             set("processes", 20);
             set("input", _input);
             set("modulo", 1);
             set("mapper", Executable("mapper", input));
-            set("reducer", Executable("reducer", input));
-            set("finalizer", Executable("finalizer", input));
-            set("version", 1);
-
-            // remember algorithm type
-            _algorithm = algorithm_mapreduce;
-        }
-
-        // the kvmapreduce is new, and version 2
-        else if (algo.instanceOf("Yothalot\\MapReduce2"))
-        {
-            // set default limits
-            set("processes", 20);
-            set("input", _input);
-            set("modulo", 1);
-            set("version", 2);
-            set("mapper", Executable("kvmapper", input));
             set("reducer", Executable("reducer", input));
             set("finalizer", Executable("finalizer", input));
 
@@ -189,11 +172,10 @@ public:
     /**
      *  Simple checkers for race and mapreduce
      *
-     *  @todo:  Can we fix this for isRace as well?
      *  @return Are we data for a specific algorithm?
      */
     bool isRace() const { return _algorithm == algorithm_race; }
-    bool isMapReduce() const { return _algorithm == algorithm_mapreduce || contains("mapper"); }
+    bool isMapReduce() const { return _algorithm == algorithm_mapreduce; }
     bool isTask() const { return _algorithm == algorithm_job; }
 
     /**
@@ -437,19 +419,6 @@ public:
 
         // set the changed input
         set("input", _input);
-    }
-
-    /**
-     *  Get the version
-     *  @return int
-     */
-    int version() const
-    {
-        // if version is not set we assume version 1
-        if (!contains("version")) return 1;
-        
-        // get the info from the json
-        return integer("version");
     }
 
     /**

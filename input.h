@@ -47,7 +47,6 @@ private:
      *  @var std::shared_ptr<Yothalot::Input>
      */
     std::shared_ptr<Yothalot::Input> _input;
-    
 
 public:
     /**
@@ -95,16 +94,16 @@ public:
             return 0;
         }
     }
-    
+
     /**
-     *  Is the input file a valid log file
+     *  Is the input file a valid yothalot file
      *  @return Php::Value
      */
     Php::Value valid()
     {
         // prevent exceptions
         try
-        {   
+        {
             // create impl object
             return (bool) Yothalot::Input(_name.data(), _seek, _bytes).valid();
         }
@@ -124,7 +123,7 @@ public:
         // construct the new iterator
         return new InputIterator(this, _name, _seek, _bytes);
     }
-    
+
     /**
      *  Get the next record
      *  @return Php::Value
@@ -136,13 +135,13 @@ public:
         {
             // do we already have an input object?
             if (_input == nullptr) _input = std::make_shared<Yothalot::Input>(_name.data(), _seek, _bytes);
-            
+
             // object must be valid
             if (!_input->valid()) return nullptr;
-            
+
             // construct a yothalot record
             auto record = std::make_shared<Yothalot::Record>(*_input);
-            
+
             // return object
             return Php::Object("Yothalot\\Record", new Record(record));
         }

@@ -211,24 +211,41 @@ public:
      */
     Php::Value add(Php::Parameters &params)
     {
-        if (params.size() >= 2)
+        if(_impl->isMapReduce())
         {
-            // create the key and the value from the parameters
-            auto key = toTuple(params[0]);
-            auto value = toTuple(params[1]);
-
-            // get the possible server
-            const char* server = params.size() >= 3 ? params[2].rawValue() : nullptr;
-
-            // pass on to the implementation object
-            if (!_impl->add(key, value, server)) return nullptr;
+            if (params.size() >= 2)
+            {
+                // create the key and the value from the parameters
+                auto key = toTuple(params[0]);
+                auto value = toTuple(params[1]);
+    
+                // get the possible server
+                const char* server = params.size() >= 3 ? params[2].rawValue() : nullptr;
+    
+                // pass on to the implementation object
+                if (!_impl->add(key, value, server)) return nullptr;
+    
+                // allow chaining
+                return this;
+            }
+            else
+            {
+                // i guess we failed now
+                return nullptr;
+            }
+        }
+        else
+        {
+            // it is a race and we only use the first parameter
+            // serialize and base64 encode the data to ensure that no null character appear in it
+            auto data = Php::call("base64_encode", Php::call("serialize", params[0])).stringValue();
+            
+            // else it is a race job to which we can add data
+            if (!_impl->add(data)) return nullptr;
 
             // allow chaining
             return this;
         }
-
-        // i guess we failed now
-        return nullptr;
     }
 
     /**

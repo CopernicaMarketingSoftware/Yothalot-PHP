@@ -171,15 +171,26 @@ extern "C" {
         }).method("array", &Record::array, {
         });
 
+        // make a simple Result Interface that only we are implementing..
+        Php::Interface result("Yothalot\\Result");
+
+        // register the common methods
+        result.method("started", {
+        }).method("finished", {
+        }).method("runtime", {
+        });
+
         // register map reduce result methods
-        mapReduceResult.method("started",    &MapReduceResult::started)
+        mapReduceResult.implements(result)
+                       .method("started",    &MapReduceResult::started)
                        .method("runtime",    &MapReduceResult::runtime)
                        .method("mappers",    &MapReduceResult::mappers)
                        .method("reducers",   &MapReduceResult::reducers)
                        .method("finalizers", &MapReduceResult::finalizers);
 
         // register the race result methods
-        raceResult.method("started",         &RaceResult::started)
+        raceResult.implements(result)
+                  .method("started",         &RaceResult::started)
                   .method("finished",        &RaceResult::finished)
                   .method("runtime",         &RaceResult::runtime)
                   .method("processes",       &RaceResult::processes)
@@ -187,13 +198,16 @@ extern "C" {
                   .method("winner",          &RaceResult::winner);
 
         // register the task result methods
-        taskResult.method("started",         &TaskResult::started)
+        taskResult.implements(result)
+                  .method("started",         &TaskResult::started)
                   .method("finished",        &TaskResult::finished)
                   .method("runtime",         &TaskResult::runtime)
                   .method("result",          &TaskResult::result);
 
         // register the error methods
-        errorResult.method("started",        &ErrorResult::started)
+        errorResult.implements(result)
+                   .method("started",        &ErrorResult::started)
+                   .method("runtime",        &ErrorResult::runtime)
                    .method("finished",       &ErrorResult::finished)
                    .method("executable",     &ErrorResult::executable)
                    .method("arguments",      &ErrorResult::arguments)
@@ -279,6 +293,7 @@ extern "C" {
         extension.add(std::move(input));
         extension.add(std::move(output));
         extension.add(std::move(record));
+        extension.add(std::move(result));
         extension.add(std::move(mapReduceResult));
         extension.add(std::move(raceResult));
         extension.add(std::move(taskResult));

@@ -69,6 +69,15 @@ public:
     }
 
     /**
+     *  Get the total runtime
+     *  @return Php::Value
+     */
+    Php::Value runtime() const
+    {
+        return _json.decimal("runtime");
+    }
+
+    /**
      *  Get the exectuable that was used for this job
      *  @return Php::Value
      */

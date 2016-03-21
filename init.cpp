@@ -38,7 +38,7 @@ static int map(const Stdin &input)
         auto modulo = argc > 1 ? (int)argv.get(argc - 1) : 1;
 
         // create the task
-        Yothalot::MapTask2 task(base(), &mapreduce, modulo);
+        Yothalot::MapTask task(base(), &mapreduce, modulo);
 
         // add the data to process
         task.process(input.data(), input.size());

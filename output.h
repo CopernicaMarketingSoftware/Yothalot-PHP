@@ -50,10 +50,19 @@ public:
         // read the params
         _name = params[0].stringValue();
         _splitsize = (params.size() >= 2) ? params[1].numericValue() : 0;
-
-        // construct the object based on the amount of php parameters that were passed
-        if (_splitsize > 0) _impl.reset(new Yothalot::Output(_name.data(), _splitsize));
-        else _impl.reset(new Yothalot::Output(_name.data()));
+        
+        // prevent exceptions (C++ errors should not bubble up to PHP space)
+        try
+        {
+            // construct the object based on the amount of php parameters that were passed
+            if (_splitsize > 0) _impl.reset(new Yothalot::Output(_name.data(), _splitsize));
+            else _impl.reset(new Yothalot::Output(_name.data()));
+        }
+        catch (const std::runtime_error &error)
+        {
+            // turn the error into a PHP error
+            throw Php::Exception(error.what());
+        }
     }
 
     /**
@@ -91,23 +100,32 @@ public:
      */
     Php::Value flush()
     {
-        // reconstruct the object
-        // @todo  We should be able to actually flush the Output without closing it entirely etc
-        //        Unfortunately this is not possible since the SLZ4 SplitCompressor hold internal
-        //        state that cannot be flushed.
-        if (_splitsize > 0)
+        // prevent exceptions
+        try
         {
-            // The initial object needs to be destructed before we can
-            // construct the new object
-            _impl.reset(nullptr);
-            _impl.reset(new Yothalot::Output(_name.data(), _splitsize));
+            // reconstruct the object
+            // @todo  just call _impl->flush() (and fix this flush method in the Yothalot C++ library)
+            // @todo  We should be able to actually flush the Output without closing it entirely etc
+            //        Unfortunately this is not possible since the SLZ4 SplitCompressor hold internal
+            //        state that cannot be flushed.
+            if (_splitsize > 0)
+            {
+                // The initial object needs to be destructed before we can
+                // construct the new object
+                _impl.reset(nullptr);
+                _impl.reset(new Yothalot::Output(_name.data(), _splitsize));
+            }
+            else
+            {
+                // The initial object needs to be destructed before we can
+                // construct the new object
+                _impl.reset(nullptr);
+                _impl.reset(new Yothalot::Output(_name.data()));
+            }
         }
-        else
+        catch (...)
         {
-            // The initial object needs to be destructed before we can
-            // construct the new object
-            _impl.reset(nullptr);
-            _impl.reset(new Yothalot::Output(_name.data()));
+            // we ignore this error for now
         }
 
         // allow chaining

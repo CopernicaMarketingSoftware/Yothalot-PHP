@@ -90,7 +90,7 @@ LINKER				=	g++
 #	with a list of all flags that should be passed to the linker.
 #
 
-COMPILER_FLAGS		=	-Wall -c -O2 -std=c++11 -fpic -DVERSION="`./version.sh`" -I. -g
+COMPILER_FLAGS		=	-Wall -c -O2 -std=c++11 -MD -fpic -DVERSION="`./version.sh`" -I. -g
 LINKER_FLAGS		=	-shared
 LINKER_DEPENDENCIES	=	-lphpcpp -lyothalot -lamqpcpp
 
@@ -115,12 +115,15 @@ MKDIR			=	mkdir -p
 
 SOURCES				=	$(wildcard *.cpp) $(wildcard json/*.cpp)
 OBJECTS				=	$(SOURCES:%.cpp=%.o)
+DEPENDENCIES		=	$(OBJECTS:%.o=%.d)
 
 #
 #	From here the build instructions start
 #
 
 all:				${OBJECTS} ${EXTENSION}
+
+-include $(DEPENDENCIES)
 
 ${EXTENSION}:			${OBJECTS}
 				${LINKER} ${LINKER_FLAGS} -o $@ ${OBJECTS} ${LINKER_DEPENDENCIES}

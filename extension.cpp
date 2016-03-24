@@ -157,8 +157,7 @@ extern "C" {
         // register input methods
         input.method("__construct", &Input::__construct, {
             Php::ByVal("filename", Php::Type::String),
-            Php::ByVal("start", Php::Type::Numeric, false),
-            Php::ByVal("bytes", Php::Type::Numeric, false)
+            Php::ByVal("strict", Php::Type::Bool, false)
         }).method("name", &Input::name, {
         }).method("size", &Input::size)
           .method("valid", &Input::valid)

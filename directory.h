@@ -40,7 +40,7 @@ public:
     /**
      *  Constructor, will create a temporary directory in the gluster mount point/tmp
      */
-    Directory() : _name(base(), "tmp/" + Php::call("uniqid").stringValue())
+    Directory() : _name(base(), "tmp/" + Php::call("uniqid", getpid()).stringValue())
     {
         // try to construct the directory
         if (mkdir(_name.full(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH) == 0) return;

@@ -152,6 +152,7 @@ extern "C" {
             Php::ByVal("value", Php::Type::Null)
         }).method("name", &Output::name, {
         }).method("flush", &Output::flush, {
+            Php::ByVal("recompress", Php::Type::Bool, false)
         }).method("size", &Output::size);
 
         // register input methods

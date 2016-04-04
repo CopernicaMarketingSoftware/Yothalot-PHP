@@ -50,7 +50,7 @@ public:
         // read the params
         _name = params[0].stringValue();
         _splitsize = (params.size() >= 2) ? params[1].numericValue() : 0;
-        
+
         // prevent exceptions (C++ errors should not bubble up to PHP space)
         try
         {
@@ -96,37 +96,25 @@ public:
 
     /**
      *  Flush the output log
-     *  @return Php::Value
+     *
+     *  This will enforce that all bytes still in memory buffers are
+     *  flushed to disk
+     *
+     *  @note   Recompressing may lead to a smaller filesize when previous
+     *          flushes were done, but may be costly in terms of CPU and I/O
+     *
+     *  @param  params  Array of parameters, the first (optional) parameter can for recompression
+     *  @return PHP value wrapping the same object, for chaining
      */
-    Php::Value flush()
+    Php::Value flush(Php::Parameters &params)
     {
-        // prevent exceptions
-        try
-        {
-            // reconstruct the object
-            // @todo  just call _impl->flush() (and fix this flush method in the Yothalot C++ library)
-            // @todo  We should be able to actually flush the Output without closing it entirely etc
-            //        Unfortunately this is not possible since the SLZ4 SplitCompressor hold internal
-            //        state that cannot be flushed.
-            if (_splitsize > 0)
-            {
-                // The initial object needs to be destructed before we can
-                // construct the new object
-                _impl.reset(nullptr);
-                _impl.reset(new Yothalot::Output(_name.data(), _splitsize));
-            }
-            else
-            {
-                // The initial object needs to be destructed before we can
-                // construct the new object
-                _impl.reset(nullptr);
-                _impl.reset(new Yothalot::Output(_name.data()));
-            }
-        }
-        catch (...)
-        {
-            // we ignore this error for now
-        }
+        // should we recompress? by default we don't do this, because
+        // this can be a pretty hefty operation, both in terms of CPU
+        // and in terms of I/O (the whole file is rewritten!)
+        bool recompress = !params.empty() && params[0];
+
+        // flush the file, optionally recompressing it
+        _impl->flush(recompress);
 
         // allow chaining
         return this;

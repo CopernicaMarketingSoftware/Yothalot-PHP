@@ -205,6 +205,21 @@ public:
     }
 
     /**
+     *  Limit the amount of records
+     *
+     *  @param  params  PHP input parameters
+     *  @return Same object for chaining or nullptr on failure
+     */
+    Php::Value maxrecords(Php::Parameters &params)
+    {
+        // pass on to implementation object
+        if (!_impl->maxrecords(params[0])) return nullptr;
+
+        // success, allow chaining
+        return this;
+    }
+
+    /**
      *  Add data to this job
      *  @param  params  PHP input parameters
      *  @return         Result is the object for chaining or nullptr on failure

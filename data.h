@@ -307,6 +307,18 @@ public:
     }
 
     /**
+     *  Set the maximum number of records processed
+     *  by each mapper process.
+     *
+     *  @param  mapper  Maximum number of records processed by each mapper process
+     */
+    void maxrecords(int64_t mapper)
+    {
+        // set the record limit on the mapper
+        object("mapper").object("limit").set("records", mapper);
+    }
+
+    /**
      *  Set the local property
      *  @param  value
      */

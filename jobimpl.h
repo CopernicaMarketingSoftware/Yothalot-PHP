@@ -282,13 +282,31 @@ public:
      *  @param value
      *  @return bool
      */
-    bool maxbytes(uint64_t mapper, uint64_t reducer, uint64_t finalizer)
+    bool maxbytes(int64_t mapper, int64_t reducer, int64_t finalizer)
     {
         // not possible if job has already started
         if (_started) return false;
 
         // set in the json
         _json.maxbytes(mapper, reducer, finalizer);
+
+        // done
+        return true;
+    }
+
+    /**
+     *  Setter for the maximum number of records per mapper process
+     *
+     *  @param  mapper  The maximum number of records per mapper
+     *  @return Was the setting stored (only possible if not started already)
+     */
+    bool maxrecords(int64_t mapper)
+    {
+        // not possible if job has already started
+        if (_started) return false;
+
+        // set in the json
+        _json.maxrecords(mapper);
 
         // done
         return true;

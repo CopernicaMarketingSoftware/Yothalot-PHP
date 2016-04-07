@@ -121,6 +121,8 @@ extern "C" {
             Php::ByVal("mapper", Php::Type::Numeric),
             Php::ByVal("reducer", Php::Type::Numeric, false),
             Php::ByVal("finalizer", Php::Type::Numeric, false)
+        }).method("maxrecords", &Job::maxrecords, {
+            Php::ByVal("mapper", Php::Type::Numeric)
         }).method("maxmappers", &Job::maxmappers, {
             Php::ByVal("value", Php::Type::Numeric)
         }).method("maxreducers", &Job::maxreducers, {

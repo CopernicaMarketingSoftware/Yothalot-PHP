@@ -91,6 +91,8 @@ extern "C" {
         job.method("__construct", &Job::__construct, {
             Php::ByVal("connection", "Yothalot\\Connection"),
             Php::ByVal("algorithm") // This should be either Yothalot\MapReduce, Yothalot\MapReduce2, Yothalot\Race or Yothalot\Task
+        }).method("splitsize", &Job::splitsize, {
+            Php::ByVal("splitsize", Php::Type::Numeric)
         }).method("add", &Job::add, { // old, v1 on single argument. new, singular keys/values otherwise for more arguments
             Php::ByVal("key", Php::Type::Null),
             Php::ByVal("value", Php::Type::Null, false),

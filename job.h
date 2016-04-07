@@ -97,6 +97,22 @@ public:
     }
 
     /**
+     *  Set the split-size to be used for input used
+     *  in the mapper task.
+     *
+     *  @param  params  PHP input parameters
+     *  @return Same object for chaining, or a nullptr in case of failure
+     */
+    Php::Value splitsize(Php::Parameters &params)
+    {
+        // pass this to the implementation
+        if (!_impl->splitsize(params[0].numericValue())) return nullptr;
+
+        // allow chaining
+        return this;
+    }
+
+    /**
      *  Set the maximum amount of concurrent running processes
      *  @param  params  PHP input parameters
      *  @return         Same object for chaining, or null on error

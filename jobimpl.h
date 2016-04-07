@@ -40,6 +40,12 @@ private:
     std::shared_ptr<Core> _core;
 
     /**
+     *  Did we create any input yet?
+     *  @var bool
+     */
+    bool _input = false;
+
+    /**
      *  Did we start yet?
      *  @var bool
      */
@@ -76,6 +82,12 @@ private:
     std::shared_ptr<JSON::Object> _result;
 
     /**
+     *  Split size for the file
+     *  @var    size_t
+     */
+    size_t _splitsize = 10 * 1024 * 1024;
+
+    /**
      *  Get access to the output file
      *  @return Yothalot::Output
      */
@@ -88,7 +100,10 @@ private:
         if (!_directory) return nullptr;
 
         // construct a new output file
-        _output.reset(new Yothalot::Output(std::string(_directory->full()) + "/" + Php::call("uniqid").stringValue()));
+        _output.reset(new Yothalot::Output(std::string(_directory->full()) + "/" + Php::call("uniqid").stringValue(), _splitsize));
+
+        // we have no created an input file
+        _input = true;
 
         // done
         return _output.get();
@@ -164,6 +179,25 @@ public:
     bool isRace() const { return _json.isRace(); }
     bool isMapReduce() const { return _json.isMapReduce(); }
     bool isTask() const { return _json.isTask(); }
+
+    /**
+     *  Set the split-size to be used for input used
+     *  in the mapper task.
+     *
+     *  @param  splitsize   The desired split size for created input files
+     *  @return Was the split size successfully changed (this can only be done before input is generated)
+     */
+    bool splitsize(size_t splitsize)
+    {
+        // not possible if we have already generated input
+        if (_input) return false;
+
+        // update the split size
+        _splitsize = splitsize;
+
+        // success!
+        return true;
+    }
 
     /**
      *  Relative path name of the temporary directory
@@ -286,6 +320,13 @@ public:
     {
         // not possible if job has already started
         if (_started) return false;
+
+        // the byte limit for each mapper *must* be a multiple of the
+        // split size of the generated input files, because they are
+        // compressed, so we can only read from the start of a split
+        if (mapper    % _splitsize) return false;
+        if (reducer   % _splitsize) return false;
+        if (finalizer % _splitsize) return false;
 
         // set in the json
         _json.maxbytes(mapper, reducer, finalizer);
@@ -488,7 +529,7 @@ public:
             _tempqueue.reset(new TempQueue(_core));
 
             // if we have an output object, we remove it to enforce that all data is flushed
-            _output = nullptr;
+            _output.reset();
 
             // store the name of the temp queue in the JSON
             _json.tempqueue(_tempqueue->name());

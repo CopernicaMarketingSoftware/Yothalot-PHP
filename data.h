@@ -17,6 +17,7 @@
  */
 #include "json/object.h"
 #include "json/array.h"
+#include "algorithm.h"
 #include <phpcpp.h>
 
 /**
@@ -35,11 +36,12 @@ private:
     /**
      *  What sort of algorithm are we going to run?
      */
-    enum {
-        algorithm_mapreduce,
-        algorithm_race,
-        algorithm_job
-    } _algorithm = algorithm_job;
+    Algorithm _algorithm = Algorithm::job;
+    // enum {
+    //     algorithm_mapreduce,
+    //     algorithm_race,
+    //     algorithm_job
+    // } _algorithm = algorithm_job;
 
     /**
      *  Utility class for an executable (the mapper, reducer or finalizer
@@ -127,7 +129,7 @@ public:
             set("finalizer", Executable("finalizer", input));
 
             // remember algorithm type
-            _algorithm = algorithm_mapreduce;
+            _algorithm = Algorithm::mapreduce;
         }
 
         // in case we are a race we just set an executable manually etc.
@@ -140,7 +142,7 @@ public:
             set("input", _input);
 
             // remember algorithm type
-            _algorithm = algorithm_race;
+            _algorithm = Algorithm::race;
         }
 
         // or are we a regular task
@@ -152,7 +154,7 @@ public:
             set("stdin", input);
 
             // remember algorithm type
-            _algorithm = algorithm_job;
+            _algorithm = Algorithm::job;
         }
     }
 
@@ -174,9 +176,20 @@ public:
      *
      *  @return Are we data for a specific algorithm?
      */
-    bool isRace() const { return _algorithm == algorithm_race; }
-    bool isMapReduce() const { return _algorithm == algorithm_mapreduce; }
-    bool isTask() const { return _algorithm == algorithm_job; }
+    bool isRace() const { return _algorithm == Algorithm::race; }
+    bool isMapReduce() const { return _algorithm == Algorithm::mapreduce; }
+    bool isTask() const { return _algorithm == Algorithm::job; }
+
+    /**
+     *  What algorithm are we using?
+     *
+     *  @return The algorithm used
+     */
+    Algorithm algorithm() const
+    {
+        // just return the algorithm
+        return _algorithm;
+    }
 
     /**
      *  Publish the data to a connection
@@ -185,9 +198,9 @@ public:
     bool publish(Core *connection) const
     {
         switch (_algorithm) {
-        case algorithm_mapreduce:   return connection->mapreduce(*this);
-        case algorithm_race:        return connection->race(*this);
-        case algorithm_job:         return connection->job(*this);
+        case Algorithm::mapreduce:  return connection->mapreduce(*this);
+        case Algorithm::race:       return connection->race(*this);
+        case Algorithm::job:        return connection->job(*this);
         default:                    return false;
         }
     }

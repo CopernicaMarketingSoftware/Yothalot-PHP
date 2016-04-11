@@ -25,7 +25,7 @@
  */
 class TaskResult : public Php::Base
 {
-private:
+protected:
     /**
      *  JSON object holding all properties
      *  @var JSON::Object

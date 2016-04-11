@@ -181,6 +181,17 @@ public:
     bool isTask() const { return _json.isTask(); }
 
     /**
+     *  Get the algorithm used by the job
+     *
+     *  @return The used algorithm
+     */
+    Algorithm algorithm() const
+    {
+        // just retrieve the algorithm from the data
+        return _json.algorithm();
+    }
+
+    /**
      *  Set the split-size to be used for input used
      *  in the mapper task.
      *

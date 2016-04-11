@@ -27,9 +27,16 @@
 #include "serialized.h"
 #include "raceresult.h"
 #include "mapreduceresult.h"
+#include "error.h"
 #include "taskresult.h"
-#include "errorresult.h"
 #include <iostream>
+
+/**
+ *  Different error types
+ */
+using MapReduceError    =   Error<MapReduceResult>;
+using RaceError         =   Error<RaceResult>;
+using TaskError         =   Error<TaskResult>;
 
 /**
  *  Class definition
@@ -396,16 +403,23 @@ public:
      */
     Php::Value wait()
     {
-        // pass it on to the implementation object
-        if (!_impl->wait()) return Php::Object("Yothalot\\ErrorResult", new ErrorResult(_impl->result()));
+        // did the job execute successfully?
+        bool success = _impl->wait();
 
-        // construct a result object
-        if (_impl->isRace())           return Php::Object("Yothalot\\RaceResult", new RaceResult(_impl->result()));
-        else if (_impl->isMapReduce()) return Php::Object("Yothalot\\MapReduceResult", new MapReduceResult(_impl->result()));
-        else if (_impl->isTask())      return Php::Object("Yothalot\\TaskResult", new TaskResult(_impl->result()));
-
-        // if we somehow failed to create a result object we just return null
-        return nullptr;
+        // what algorithm did we just wait for?
+        switch (_impl->algorithm())
+        {
+            case Algorithm::race:
+                if (success)    return Php::Object{ "Yothalot\\RaceResult",         new RaceResult      { _impl->result()   }};
+                else            return Php::Object{ "Yothalot\\RaceError",          new RaceError       { *_impl->result()  }};
+            case Algorithm::mapreduce:
+                if (success)    return Php::Object{ "Yothalot\\MapReduceResult",    new MapReduceResult { _impl->result()   }};
+                else            return Php::Object{ "Yothalot\\MapReduceError",     new MapReduceError  { *_impl->result()  }};
+            case Algorithm::job:
+                if (success)    return Php::Object{ "Yothalot\\TaskResult",         new TaskResult      { _impl->result()   }};
+                else            return Php::Object{ "Yothalot\\TaskError",          new TaskError       { *_impl->result()  }};
+            default:            return nullptr;
+        }
     }
 
     /**

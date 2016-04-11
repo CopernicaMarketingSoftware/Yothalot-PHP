@@ -1,6 +1,6 @@
 /**
  *  Results.h
- * 
+ *
  *  PHP results class to retrieve the results from a job
  *
  *  @author Aljar Meesters <aljar.meesters@copernica.com>
@@ -25,7 +25,7 @@
  */
 class RaceResult : public Php::Base
 {
-private:
+protected:
     /**
      *  JSON object holding all properties
      *  @var JSON::Object
@@ -48,7 +48,7 @@ public:
     /**
      *  Destructor
      */
-    virtual ~RaceResult() {}
+    virtual ~RaceResult() = default;
 
     /**
      *  Get the time when the job is started
@@ -58,7 +58,7 @@ public:
     {
         return _json.decimal("started");
     }
-    
+
     /**
      *  Get the time when the job is finished
      *  @return Php::Value
@@ -76,7 +76,7 @@ public:
     {
         return _json.decimal("runtime");
     }
-    
+
     /**
      *  Get the number of processes during the race
      *  @return Php::Value
@@ -95,7 +95,7 @@ public:
         // unserialize the base64 encoded object from stdout
         return Php::call("unserialize", Php::call("base64_decode", _json.object("winner").c_str("stdout")));
     }
-    
+
     /**
      *  Get the winner class with all winner statistics
      *  @return Php::Value

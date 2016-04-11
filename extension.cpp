@@ -13,8 +13,8 @@
 #include <phpcpp.h>
 
 #include "mapreduceresult.h"
+#include "error.h"
 #include "raceresult.h"
-#include "errorresult.h"
 #include "stats.h"
 #include "datastats.h"
 #include "writer.h"
@@ -34,6 +34,13 @@
 #define STR_VALUE(arg)      #arg
 #define VERSION_NAME(name)  STR_VALUE(name)
 #define THE_VERSION         VERSION_NAME(VERSION)
+
+/**
+ *  The different error types
+ */
+using   MapReduceError  =   Error<MapReduceResult>;
+using   RaceError       =   Error<RaceResult>;
+using   TaskError       =   Error<TaskResult>;
 
 /**
  *  tell the compiler that the get_module is a pure C function
@@ -64,9 +71,11 @@ extern "C" {
         Php::Class<Input>           input          ("Yothalot\\Input");
         Php::Class<Record>          record         ("Yothalot\\Record");
         Php::Class<MapReduceResult> mapReduceResult("Yothalot\\MapReduceResult");
+        Php::Class<MapReduceError>  mapReduceError ("Yothalot\\MapReduceError");
         Php::Class<RaceResult>      raceResult     ("Yothalot\\RaceResult");
+        Php::Class<RaceError>       raceError      ("Yothalot\\RaceError");
         Php::Class<TaskResult>      taskResult     ("Yothalot\\TaskResult");
-        Php::Class<ErrorResult>     errorResult    ("Yothalot\\ErrorResult");
+        Php::Class<TaskError>       taskError      ("Yothalot\\TaskError");
         Php::Class<Stats>           stats          ("Yothalot\\Stats");
         Php::Class<DataStats>       datastats      ("Yothalot\\DataStats");
         Php::Class<Winner>          winner         ("Yothalot\\Winner");
@@ -179,45 +188,61 @@ extern "C" {
         Php::Interface result("Yothalot\\Result");
 
         // register the common methods
-        result.method("started", {
-        }).method("finished", {
-        }).method("runtime", {
-        });
+        result  .method("started",  {})
+                .method("finished", {})
+                .method("runtime",  {});
 
         // register map reduce result methods
         mapReduceResult.implements(result)
-                       .method("started",    &MapReduceResult::started)
-                       .method("runtime",    &MapReduceResult::runtime)
-                       .method("mappers",    &MapReduceResult::mappers)
-                       .method("reducers",   &MapReduceResult::reducers)
-                       .method("finalizers", &MapReduceResult::finalizers);
+                       .method("started",       &MapReduceResult::started)
+                       .method("finished",      &MapReduceResult::finished)
+                       .method("runtime",       &MapReduceResult::runtime)
+                       .method("mappers",       &MapReduceResult::mappers)
+                       .method("reducers",      &MapReduceResult::reducers)
+                       .method("finalizers",    &MapReduceResult::finalizers);
+
+        // and the error result for map/reduce
+        mapReduceError  .extends(mapReduceResult)
+                        .method("executable",   &MapReduceError::executable)
+                        .method("arguments",    &MapReduceError::arguments)
+                        .method("stdin",        &MapReduceError::stdin)
+                        .method("stdout",       &MapReduceError::stdout)
+                        .method("stderr",       &MapReduceError::stderr)
+                        .method("command",      &MapReduceError::command);
 
         // register the race result methods
         raceResult.implements(result)
-                  .method("started",         &RaceResult::started)
-                  .method("finished",        &RaceResult::finished)
-                  .method("runtime",         &RaceResult::runtime)
-                  .method("processes",       &RaceResult::processes)
-                  .method("result",          &RaceResult::result)
-                  .method("winner",          &RaceResult::winner);
+                  .method("started",            &RaceResult::started)
+                  .method("finished",           &RaceResult::finished)
+                  .method("runtime",            &RaceResult::runtime)
+                  .method("processes",          &RaceResult::processes)
+                  .method("result",             &RaceResult::result)
+                  .method("winner",             &RaceResult::winner);
+
+        // and the error result for race jobs
+        raceError   .extends(raceResult)
+                    .method("executable",       &RaceError::executable)
+                    .method("arguments",        &RaceError::arguments)
+                    .method("stdin",            &RaceError::stdin)
+                    .method("stdout",           &RaceError::stdout)
+                    .method("stderr",           &RaceError::stderr)
+                    .method("command",          &RaceError::command);
 
         // register the task result methods
         taskResult.implements(result)
-                  .method("started",         &TaskResult::started)
-                  .method("finished",        &TaskResult::finished)
-                  .method("runtime",         &TaskResult::runtime)
-                  .method("result",          &TaskResult::result);
+                  .method("started",            &TaskResult::started)
+                  .method("finished",           &TaskResult::finished)
+                  .method("runtime",            &TaskResult::runtime)
+                  .method("result",             &TaskResult::result);
 
-        // register the error methods
-        errorResult.implements(result)
-                   .method("started",        &ErrorResult::started)
-                   .method("runtime",        &ErrorResult::runtime)
-                   .method("finished",       &ErrorResult::finished)
-                   .method("executable",     &ErrorResult::executable)
-                   .method("arguments",      &ErrorResult::arguments)
-                   .method("stdin",          &ErrorResult::stdin)
-                   .method("stdout",         &ErrorResult::stdout)
-                   .method("stderr",         &ErrorResult::stderr);
+        // and the error result for race jobs
+        taskError   .extends(raceResult)
+                    .method("executable",       &TaskError::executable)
+                    .method("arguments",        &TaskError::arguments)
+                    .method("stdin",            &TaskError::stdin)
+                    .method("stdout",           &TaskError::stdout)
+                    .method("stderr",           &TaskError::stderr)
+                    .method("command",          &TaskError::command);
 
         // register stats methods
         stats.method("first",       &Stats::first)
@@ -299,9 +324,11 @@ extern "C" {
         extension.add(std::move(record));
         extension.add(std::move(result));
         extension.add(std::move(mapReduceResult));
+        extension.add(std::move(mapReduceError));
         extension.add(std::move(raceResult));
+        extension.add(std::move(raceError));
         extension.add(std::move(taskResult));
-        extension.add(std::move(errorResult));
+        extension.add(std::move(taskError));
         extension.add(std::move(stats));
         extension.add(std::move(datastats));
         extension.add(std::move(winner));

@@ -1,7 +1,7 @@
 /**
- *  Results.h
- * 
- *  PHP results class to retrieve the results from a job
+ *  mapreduceresult.h
+ *
+ *  PHP results class to retrieve the results from a map/reduce job
  *
  *  @author Aljar Meesters <aljar.meesters@copernica.com>
  *  @copyright 2015 Copernica BV
@@ -24,7 +24,7 @@
  */
 class MapReduceResult : public Php::Base
 {
-private:
+protected:
     /**
      *  JSON object holding all properties
      *  @var JSON::Object
@@ -47,7 +47,7 @@ public:
     /**
      *  Destructor
      */
-    virtual ~MapReduceResult() {}
+    virtual ~MapReduceResult() = default;
 
     /**
      *  Get the time when the job is started
@@ -56,6 +56,16 @@ public:
     Php::Value started() const
     {
         return _json.decimal("started");
+    }
+
+    /**
+     *  Get the time when the job is finished
+     *
+     *  @return Value-wrapped decimal value (unix timestamp with sub-second precision)
+     */
+    Php::Value finished() const
+    {
+        return _json.decimal("finished");
     }
 
     /**

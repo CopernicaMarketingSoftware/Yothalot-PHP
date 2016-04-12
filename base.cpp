@@ -19,9 +19,18 @@
  */
 const Yothalot::Base &base()
 {
-    // create static instance
-    static Yothalot::Base instance(Php::ini_get("yothalot.base-directory"));
+    // a missing gluster mount may result in an exception
+    try
+    {
+        // create static instance
+        static Yothalot::Base instance(Php::ini_get("yothalot.base-directory"));
 
-    // return it
-    return instance;
+        // return it
+        return instance;
+    }
+    catch (const std::runtime_error &error)
+    {
+        // pass the exception on to PHP
+        throw Php::Exception(error.what());
+    }
 }

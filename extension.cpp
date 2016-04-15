@@ -175,7 +175,8 @@ extern "C" {
         }).method("name", &Input::name, {
         }).method("size", &Input::size)
           .method("valid", &Input::valid)
-          .method("next", &Input::next);
+          .method("next", &Input::next)
+          .method("seek", &Input::seek);
 
         // register record methods
         record.method("identifier", &Record::identifier, {

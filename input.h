@@ -144,5 +144,43 @@ public:
             return nullptr;
         }
     }
+    
+    /**
+     *  Seek records
+     *  @param  params
+     *  @return Php::Value
+     */
+    Php::Value seek(Php::Parameters &params)
+    {
+        // prevent exceptions
+        try
+        {
+            // do we already have an input object?
+            if (_input == nullptr) _input = std::make_shared<Yothalot::Input>(_name.data(), _strict);
+
+            // object must be valid
+            if (!_input->valid()) return 0;
+
+            // was a parameter passed?
+            if (params.size() == 0)
+            {
+                // seek to the end
+                return (int)_input->seek();
+            }
+            else
+            {
+                // get the seek value
+                int value = params[0];
+                
+                // seek passed number of items
+                return (int)_input->seek(value);
+            }
+        }
+        catch (...)
+        {
+            // object is in an invalid state
+            return 0;
+        }
+    }
 };
 

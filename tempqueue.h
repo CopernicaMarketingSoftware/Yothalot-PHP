@@ -16,8 +16,7 @@
 /**
  *  Dependencies
  */
-#include <reactcpp.h>
-#include <reactcpp/amqp.h>
+#include <amqpcpp.h>
 
 /**
  *  Class definition

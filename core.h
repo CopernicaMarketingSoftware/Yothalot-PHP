@@ -16,8 +16,7 @@
  *  Dependencies
  */
 #include <phpcpp.h>
-#include <reactcpp.h>
-#include <reactcpp/amqp.h>
+#include <amqpcpp.h>
 
 #include "json/object.h"
 #include "tuplehelper.h"

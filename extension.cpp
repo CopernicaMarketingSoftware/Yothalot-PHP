@@ -81,108 +81,108 @@ extern "C" {
         Php::Class<Winner>          winner         ("Yothalot\\Winner");
 
         // register writer functions
-        writer.method("emit", &Writer::emit, {
+        writer.method<&Writer::emit>("emit", {
             Php::ByVal("value", Php::Type::Null)
         });
 
         // register functions on the reducer
-        reducer.method("emit", &Reducer::emit, {
+        reducer.method<&Reducer::emit>("emit", {
             Php::ByVal("key", Php::Type::Null),
             Php::ByVal("value", Php::Type::Null)
         });
 
         // register the Connection methods
-        connection.method("__construct", &Connection::__construct, {
+        connection.method<&Connection::__construct>("__construct", {
             Php::ByVal("settings", Php::Type::Array, false)
-        }).method("flush", &Connection::flush);
+        }).method<&Connection::flush>("flush");
 
         // register the methods on our php classes
-        job.method("__construct", &Job::__construct, {
+        job.method<&Job::__construct>("__construct", {
             Php::ByVal("connection", "Yothalot\\Connection"),
             Php::ByVal("algorithm") // This should be either Yothalot\MapReduce, Yothalot\MapReduce2, Yothalot\Race or Yothalot\Task
-        }).method("splitsize", &Job::splitsize, {
+        }).method<&Job::splitsize>("splitsize", {
             Php::ByVal("splitsize", Php::Type::Numeric)
-        }).method("add", &Job::add, { // old, v1 on single argument. new, singular keys/values otherwise for more arguments
+        }).method<&Job::add>("add", { // old, v1 on single argument. new, singular keys/values otherwise for more arguments
             Php::ByVal("key", Php::Type::Null),
             Php::ByVal("value", Php::Type::Null, false),
             Php::ByVal("server", Php::Type::String, false)
-        }).method("map", &Job::map, { // this should ensure the multiple case, where mapped values will be combined
+        }).method<&Job::map>("map", { // this should ensure the multiple case, where mapped values will be combined
             Php::ByVal("key", Php::Type::Null),
             Php::ByVal("value", Php::Type::Null),
             Php::ByVal("server", Php::Type::String, false)
-        }).method("file", &Job::file, { // new, v2 behaviour
+        }).method<&Job::file>("file", { // new, v2 behaviour
             Php::ByVal("filename", Php::Type::String),
             Php::ByVal("start", Php::Type::Numeric, false),
             Php::ByVal("size", Php::Type::Numeric, false),
             Php::ByVal("remove", Php::Type::Bool, false),
             Php::ByVal("server", Php::Type::String, false)
-        }).method("directory", &Job::directory, { // new, v2 behaviour
+        }).method<&Job::directory>("directory", { // new, v2 behaviour
             Php::ByVal("dirname", Php::Type::String, false),
             Php::ByVal("remove", Php::Type::Bool, false),
             Php::ByVal("server", Php::Type::String, false)
-        }).method("modulo", &Job::modulo, {
+        }).method<&Job::modulo>("modulo", {
             Php::ByVal("value", Php::Type::Numeric)
-        }).method("maxprocesses", &Job::maxprocesses, {
+        }).method<&Job::maxprocesses>("maxprocesses", {
             Php::ByVal("value", Php::Type::Numeric)
-        }).method("maxfiles", &Job::maxfiles, { // old behaviour causes all the same, new behaviour has differences
+        }).method<&Job::maxfiles>("maxfiles", { // old behaviour causes all the same, new behaviour has differences
             Php::ByVal("mapper", Php::Type::Numeric),
             Php::ByVal("reducer", Php::Type::Numeric, false),
             Php::ByVal("finalizer", Php::Type::Numeric, false)
-        }).method("maxbytes", &Job::maxbytes, { // old behaviour sets all values to the same value, new behaviour set individually
+        }).method<&Job::maxbytes>("maxbytes", { // old behaviour sets all values to the same value, new behaviour set individually
             Php::ByVal("mapper", Php::Type::Numeric),
             Php::ByVal("reducer", Php::Type::Numeric, false),
             Php::ByVal("finalizer", Php::Type::Numeric, false)
-        }).method("maxrecords", &Job::maxrecords, {
+        }).method<&Job::maxrecords>("maxrecords", {
             Php::ByVal("mapper", Php::Type::Numeric)
-        }).method("maxmappers", &Job::maxmappers, {
+        }).method<&Job::maxmappers>("maxmappers", {
             Php::ByVal("value", Php::Type::Numeric)
-        }).method("maxreducers", &Job::maxreducers, {
+        }).method<&Job::maxreducers>("maxreducers", {
             Php::ByVal("value", Php::Type::Numeric)
-        }).method("maxfinalizers", &Job::maxfinalizers, {
+        }).method<&Job::maxfinalizers>("maxfinalizers", {
             Php::ByVal("value", Php::Type::Numeric)
-        }).method("local", &Job::local, {
+        }).method<&Job::local>("local", {
             Php::ByVal("value", Php::Type::Bool)
-        }).method("flush", &Job::flush, { // new, v2 behaviour
-        }).method("start", &Job::start, {
-        }).method("detach", &Job::detach, {
-        }).method("wait", &Job::wait);
+        }).method<&Job::flush>("flush", { // new, v2 behaviour
+        }).method<&Job::start>("start", {
+        }).method<&Job::detach>("detach", {
+        }).method<&Job::wait>("wait");
 
         // register the path methods
-        path.method("__construct", &Path::__construct, {
+        path.method<&Path::__construct>("__construct", {
             Php::ByVal("path", Php::Type::String)
-        }).method("absolute", &Path::absolute, {
-        }).method("relative", &Path::relative);
+        }).method<&Path::absolute>("absolute", {
+        }).method<&Path::relative>("relative");
 
         // register the output methods
-        output.method("__construct", &Output::__construct, {
+        output.method<&Output::__construct>("__construct", {
             Php::ByVal("filename", Php::Type::String),
             Php::ByVal("splitsize", Php::Type::Numeric, false)
-        }).method("add", &Output::add, {
+        }).method<&Output::add>("add", {
             Php::ByVal("identifier", Php::Type::Numeric),
             Php::ByVal("fields", Php::Type::Array)
-        }).method("kv", &Output::kv, {
+        }).method<&Output::kv>("kv", {
             Php::ByVal("key", Php::Type::Null),
             Php::ByVal("value", Php::Type::Null)
-        }).method("name", &Output::name, {
-        }).method("flush", &Output::flush, {
+        }).method<&Output::name>("name", {
+        }).method<&Output::flush>("flush", {
             Php::ByVal("recompress", Php::Type::Bool, false)
-        }).method("size", &Output::size);
+        }).method<&Output::size>("size");
 
         // register input methods
-        input.method("__construct", &Input::__construct, {
+        input.method<&Input::__construct>("__construct", {
             Php::ByVal("filename", Php::Type::String),
             Php::ByVal("strict", Php::Type::Bool, false)
-        }).method("name", &Input::name, {
-        }).method("size", &Input::size)
-          .method("valid", &Input::valid)
-          .method("next", &Input::next)
-          .method("seek", &Input::seek);
+        }).method<&Input::name>("name", {
+        }).method<&Input::size>("size")
+          .method<&Input::valid>("valid")
+          .method<&Input::next>("next")
+          .method<&Input::seek>("seek");
 
         // register record methods
-        record.method("identifier", &Record::identifier, {
-        }).method("size", &Record::size, {
-        }).method("count", &Record::fields, {
-        }).method("array", &Record::array, {
+        record.method<&Record::identifier>("identifier", {
+        }).method<&Record::size>("size", {
+        }).method<&Record::fields>("count", {
+        }).method<&Record::array>("array", {
         });
 
         // make a simple Result Interface that only we are implementing..
@@ -195,82 +195,82 @@ extern "C" {
 
         // register map reduce result methods
         mapReduceResult.implements(result)
-                       .method("started",       &MapReduceResult::started)
-                       .method("finished",      &MapReduceResult::finished)
-                       .method("runtime",       &MapReduceResult::runtime)
-                       .method("mappers",       &MapReduceResult::mappers)
-                       .method("reducers",      &MapReduceResult::reducers)
-                       .method("finalizers",    &MapReduceResult::finalizers);
+                       .method<&MapReduceResult::started>       ("started")
+                       .method<&MapReduceResult::finished>      ("finished")
+                       .method<&MapReduceResult::runtime>       ("runtime")
+                       .method<&MapReduceResult::mappers>       ("mappers")
+                       .method<&MapReduceResult::reducers>      ("reducers")
+                       .method<&MapReduceResult::finalizers>    ("finalizers");
 
         // and the error result for map/reduce
         mapReduceError  .extends(mapReduceResult)
-                        .method("executable",   &MapReduceError::executable)
-                        .method("arguments",    &MapReduceError::arguments)
-                        .method("stdin",        &MapReduceError::stdin)
-                        .method("stdout",       &MapReduceError::stdout)
-                        .method("stderr",       &MapReduceError::stderr)
-                        .method("command",      &MapReduceError::command);
+                        .method<&MapReduceError::executable>    ("executable")
+                        .method<&MapReduceError::arguments>     ("arguments")
+                        .method<&MapReduceError::stdin>         ("stdin")
+                        .method<&MapReduceError::stdout>        ("stdout")
+                        .method<&MapReduceError::stderr>        ("stderr")
+                        .method<&MapReduceError::command>       ("command");
 
         // register the race result methods
         raceResult.implements(result)
-                  .method("started",            &RaceResult::started)
-                  .method("finished",           &RaceResult::finished)
-                  .method("runtime",            &RaceResult::runtime)
-                  .method("processes",          &RaceResult::processes)
-                  .method("result",             &RaceResult::result)
-                  .method("winner",             &RaceResult::winner);
+                  .method<&RaceResult::started>     ("started")
+                  .method<&RaceResult::finished>    ("finished")
+                  .method<&RaceResult::runtime>     ("runtime")
+                  .method<&RaceResult::processes>   ("processes")
+                  .method<&RaceResult::result>      ("result")
+                  .method<&RaceResult::winner>      ("winner");
 
         // and the error result for race jobs
         raceError   .extends(raceResult)
-                    .method("executable",       &RaceError::executable)
-                    .method("arguments",        &RaceError::arguments)
-                    .method("stdin",            &RaceError::stdin)
-                    .method("stdout",           &RaceError::stdout)
-                    .method("stderr",           &RaceError::stderr)
-                    .method("command",          &RaceError::command);
+                    .method<&RaceError::executable> ("executable")
+                    .method<&RaceError::arguments>  ("arguments")
+                    .method<&RaceError::stdin>      ("stdin")
+                    .method<&RaceError::stdout>     ("stdout")
+                    .method<&RaceError::stderr>     ("stderr")
+                    .method<&RaceError::command>    ("command");
 
         // register the task result methods
         taskResult.implements(result)
-                  .method("started",            &TaskResult::started)
-                  .method("finished",           &TaskResult::finished)
-                  .method("runtime",            &TaskResult::runtime)
-                  .method("result",             &TaskResult::result);
+                  .method<&TaskResult::started>     ("started")
+                  .method<&TaskResult::finished>    ("finished")
+                  .method<&TaskResult::runtime>     ("runtime")
+                  .method<&TaskResult::result>      ("result");
 
         // and the error result for race jobs
         taskError   .extends(raceResult)
-                    .method("executable",       &TaskError::executable)
-                    .method("arguments",        &TaskError::arguments)
-                    .method("stdin",            &TaskError::stdin)
-                    .method("stdout",           &TaskError::stdout)
-                    .method("stderr",           &TaskError::stderr)
-                    .method("command",          &TaskError::command);
+                    .method<&TaskError::executable> ("executable")
+                    .method<&TaskError::arguments>  ("arguments")
+                    .method<&TaskError::stdin>      ("stdin")
+                    .method<&TaskError::stdout>     ("stdout")
+                    .method<&TaskError::stderr>     ("stderr")
+                    .method<&TaskError::command>    ("command");
 
         // register stats methods
-        stats.method("first",       &Stats::first)
-             .method("last",        &Stats::last)
-             .method("finished",    &Stats::finished)
-             .method("fastest",     &Stats::fastest)
-             .method("slowest",     &Stats::slowest)
-             .method("processes",   &Stats::processes)
-             .method("runtime",     &Stats::runtime)
-             .method("input",       &Stats::input)
-             .method("output",      &Stats::output);
+        stats.method<&Stats::first>     ("first")
+             .method<&Stats::last>      ("last")
+             .method<&Stats::finished>  ("finished")
+             .method<&Stats::fastest>   ("fastest")
+             .method<&Stats::slowest>   ("slowest")
+             .method<&Stats::processes> ("processes")
+             .method<&Stats::runtime>   ("runtime")
+             .method<&Stats::input>     ("input")
+             .method<&Stats::output>    ("output");
 
         // register datastats methods
-        datastats.method("files",   &DataStats::files)
-                 .method("bytes",   &DataStats::bytes);
+        datastats.method<&DataStats::files> ("files")
+                 .method<&DataStats::bytes> ("bytes");
 
         // register winner methods
-        winner.method("input",    &Winner::input)
-              .method("output",   &Winner::output)
-              .method("error",    &Winner::error)
-              .method("server",   &Winner::server)
-              .method("pid",      &Winner::pid)
-              .method("signal",   &Winner::signal)
-              .method("exit",     &Winner::exit)
-              .method("started",  &Winner::started)
-              .method("finished", &Winner::finished)
-              .method("runtime",  &Winner::runtime);
+        winner.method<&Winner::input>   ("input")
+              .method<&Winner::output>  ("output")
+              .method<&Winner::error>   ("error")
+              .method<&Winner::server>  ("server")
+              .method<&Winner::pid>     ("pid")
+              .method<&Winner::signal>  ("signal")
+              .method<&Winner::exit>    ("exit")
+              .method<&Winner::started> ("started")
+              .method<&Winner::finished>("finished")
+              .method<&Winner::runtime> ("runtime");
 
 
         // create the map reduce interface
@@ -336,7 +336,7 @@ extern "C" {
 
         // add the init method for use on the command line to our namespace, this
         // will result in `php -r "YothalotInit('mapper');"`
-        extension.add("YothalotInit", &yothalotInit, { Php::ByVal("mode", Php::Type::String) });
+        extension.add<yothalotInit>("YothalotInit", { Php::ByVal("mode", Php::Type::String) });
 
         // add all the ini settings for the connection
         extension.add(Php::Ini{ "yothalot.host",         "localhost"    });

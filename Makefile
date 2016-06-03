@@ -28,16 +28,20 @@ NAME				=	yothalot
 #	one for each extension. Use this variable to specify this directory.
 #
 #	In Ubuntu 14.04 Apache 2.4 is used, which uses the mods-available directory
-# 	instead of a conf.d directory. This has to be checked.
+# 	instead of a conf.d directory. In 16.04 the directory changed yet again.
+#   This has to be checked.
 #
 
-UBUNTU_MAJOR := $(shell /usr/bin/lsb_release -r -s | cut -f1 -d.)
+UBUNTU_MAJOR  := $(shell /usr/bin/lsb_release -r -s | cut -f1 -d.)
+OVER_SIXTEEN  := $(shell echo "${UBUNTU_MAJOR} >= 16" | bc)
 OVER_FOURTEEN := $(shell echo "${UBUNTU_MAJOR} >= 14" | bc)
 
-ifeq (${OVER_FOURTEEN}, 1)
-	INI_DIR				= 	/etc/php5/mods-available/
+ifeq (${OVER_SIXTEEN}, 1)
+	INI_DIR		=	/etc/php/7.0/mods-available/
+else ifeq (${OVER_FOURTEEN}, 1)
+	INI_DIR		=	/etc/php5/mods-available/
 else
-	INI_DIR				=	/etc/php5/conf.d/
+	INI_DIR		=	/etc/php5/conf.d/
 endif
 
 #

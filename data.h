@@ -166,16 +166,16 @@ public:
         JSON::Object(object),
         _input(object.array("input"))
     {
-            // Check if we are a mapreduce, race or regular task
-            // if we contain mapper information we are a map reduce algorithm
-            if (contains("mapper") && contains("reducer") && contains("finalizer")) _algorithm = Algorithm::mapreduce;
-            
-            // if we are not a map reduce algorithm but have input we are a race algorithm
-            else if (contains("input")) _algorithm = Algorithm::race;
-            
-            // if we are neither a mapreduce nor a race algorithm we are
-            // a regular task
-            else _algorithm = Algorithm::job;
+        // Check if we are a mapreduce, race or regular task
+        // if we contain mapper information we are a map reduce algorithm
+        if (contains("mapper") && contains("reducer") && contains("finalizer")) _algorithm = Algorithm::mapreduce;
+        
+        // if we are not a map reduce algorithm but have input we are a race algorithm
+        else if (contains("input")) _algorithm = Algorithm::race;
+        
+        // if we are neither a mapreduce nor a race algorithm we are
+        // a regular task
+        else _algorithm = Algorithm::job;
     }
 
     /**

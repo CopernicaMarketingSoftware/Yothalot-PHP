@@ -4,7 +4,7 @@
  *  The init function that should be called directly on cli.
  *
  *  @author    Toon Schoenmakers <toon.schoenmakers@copernica.com>
- *  @copyright 2015 Copernica BV
+ *  @copyright 2015 - 2016 Copernica BV
  */
 
 /**
@@ -15,6 +15,7 @@
 #include "wrapper.h"
 #include "base.h"
 #include "stdin.h"
+#include "tempdir.h"
 #include <yothalot.h>
 
 /**
@@ -37,8 +38,11 @@ static int map(const Stdin &input)
         // modulo is the last argument
         auto modulo = argc > 1 ? (int)argv.get(argc - 1) : 1;
 
+        // get the temp directory
+        static TempDir tempdir;
+
         // create the task
-        Yothalot::MapTask task(base(), &mapreduce, modulo);
+        Yothalot::MapTask task(base(), &mapreduce, modulo, tempdir);
 
         // add the data to process
         task.process(input.data(), input.size());

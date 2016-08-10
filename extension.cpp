@@ -351,6 +351,9 @@ extern "C" {
         // add the ini property for the base directory
         extension.add(Php::Ini("yothalot.base-directory", ""));
 
+        // add the ini property for the temp directory
+        extension.add(Php::Ini("yothalot.temp-directory", "/tmp"));
+
         // return the extension
         return extension;
     }

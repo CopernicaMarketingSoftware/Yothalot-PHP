@@ -23,7 +23,36 @@
  */
 class TempQueue
 {
+public:
+    /**
+     *  Interface implemented by a queue-owner
+     */
+    class Owner
+    {
+    public:
+        /**
+         *  Called when result comes in
+         *  @param  queue
+         *  @param  buffer
+         *  @param  size
+         */
+        virtual void onReceived(TempQueue *queue, const char *buffer, size_t size) = 0;
+        
+        /**
+         *  Called in case of an error
+         *  @param  queue
+         *  @param  message
+         */
+        virtual void onError(TempQueue *queue, const char *message) = 0;
+    };
+    
 private:
+    /**
+     *  Pointer to the owner
+     *  @var Owner
+     */
+    Owner *_owner;
+
     /**
      *  Core connection object
      *  @var std::shared_ptr<Core>
@@ -51,17 +80,17 @@ private:
     std::string _name;
 
     /**
-     *  Is the result available
-     *  @return bool
+     *  Was the consumer cancelled?
+     *  @var bool
+     */
+    bool _cancelled;
+
+    /**
+     *  Is the object ready, or do we still have to clean up things?
+     *  @var bool
      */
     bool _ready = false;
 
-    /**
-     *  String that is used by the "consume()" call
-     *  @var std::string
-     */
-    std::string _result;
-    
     
     /**
      *  Method that is called when the queue has been declared
@@ -74,6 +103,9 @@ private:
         
         // start the consumer
         _channel.consume(_name).onReceived(std::bind(&TempQueue::onReceived, this, _1, _2));
+        
+        // we stop the private event loop, we're going to restart it when the owner starts consuming
+        _loop.stop();
     }
     
     /**
@@ -83,17 +115,14 @@ private:
      */
     void onReceived(const AMQP::Message &message, uint64_t deliveryTag)
     {
-        // object is ready
-        _ready = true;
-        
-        // assign the response
-        _result.assign(message.body(), message.bodySize());
-
         // ack the message
         _channel.ack(deliveryTag);
 
         // stop further consuming
-        _channel.cancel(_name).onFinalize(std::bind(&TempQueue::onFinished, this));
+        _channel.cancel(_name).onSuccess(std::bind(&TempQueue::onCancelled, this, _1));
+
+        // tell the owner
+        _owner->onReceived(this, message.body(), message.bodySize());
     }
     
     /**
@@ -102,30 +131,50 @@ private:
      */
     void onError(const char *message)
     {
+        // remember that we're ready, nothing left to clean up
+        _ready = true;
+        
         // stop event loop
         _loop.stop();
+        
+        // pass to the owner
+        _owner->onError(this, message);
     }
     
     /**
-     *  An operation is finished
+     *  Consuming was cancelled
+     *  @param  consumer
      */
-    void onFinished()
+    void onCancelled(const std::string &consumer)
     {
-        // stop event loop
+        // remember that consumer has been cancelled
+        _cancelled = true;
+        
+        // we no longer need the queue
+        _channel.removeQueue(_name).onSuccess(std::bind(&TempQueue::onRemoved, this, _1));
+    }
+    
+    /**
+     *  Callback when queue was removed
+     *  @param  messages
+     */
+    void onRemoved(size_t messages)
+    {
+        // object is ready
+        _ready = true;
+
+        // stop private event loop
         _loop.stop();
     }
     
 public:
     /**
      *  Constructor
-     *
-     *  Watch out! An exception is thrown when no RabbitMQ connection is available
-     *
+     *  @param  owner       Object that will be notified with the result
      *  @param  core        The core RabbitMQ connection
-     *
-     *  @throws std::runtime_error
      */
-    TempQueue(const std::shared_ptr<Core> &core) : _core(core), _loop(core->descriptors()), _channel(core->connection())
+    TempQueue(Owner *owner, const std::shared_ptr<Core> &core) : 
+        _owner(owner), _core(core), _loop(core->descriptors()), _channel(core->connection())
     {
         // set up error handler
         _channel.onError(std::bind(&TempQueue::onError, this, _1));
@@ -134,7 +183,7 @@ public:
         auto flags = ::AMQP::autodelete | ::AMQP::exclusive;
 
         // declare the queue
-        _channel.declareQueue(flags).onSuccess(std::bind(&TempQueue::onDeclared, this, _1)).onFinalize(std::bind(&TempQueue::onFinished, this));
+        _channel.declareQueue(flags).onSuccess(std::bind(&TempQueue::onDeclared, this, _1));
         
         // run the event loop, because we need to know the name, this will run
         // until the declareQueue operation is finished
@@ -146,8 +195,14 @@ public:
      */
     virtual ~TempQueue()
     {
-        // remove the queue from RabbitMQ
-        _channel.removeQueue(_name);
+        // if we still have things to clean up, we're going to run the event loop a little longer
+        if (_ready) return;
+        
+        // cancel the consumer
+        if (!_cancelled) _channel.cancel(_name).onSuccess(std::bind(&TempQueue::onCancelled, this, _1));
+        
+        // run the event loop a little longer
+        _loop.run(_core->connection());
     }
 
     /**
@@ -161,19 +216,15 @@ public:
     }
 
     /**
-     *  Consume data from the temporary queue
-     *  @return std::string
+     *  Start consuming data from the temporary queue
      */
-    const std::string &consume()
+    void wait()
     {
-        // do we already have a result?
-        if (_ready) return _result;
+        // if object is ready, we do not have to do anything
+        if (_ready) return;
         
         // start the event loop, it will come to an end when we have the result
         _loop.run(_core->connection());
-        
-        // we expect to have the result
-        return _result;
     }
     
     /**

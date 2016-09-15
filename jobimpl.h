@@ -24,7 +24,7 @@
 /**
  *  Class definition
  */
-class JobImpl
+class JobImpl : private TempQueue::Owner
 {
 private:
     /**
@@ -58,6 +58,12 @@ private:
     bool _done = false;
 
     /**
+     *  Did an error occur?
+     *  @var bool
+     */
+    bool _error = false;
+
+    /**
      *  The temporary queue the result will be published to
      *  @var TempQueue
      */
@@ -86,6 +92,42 @@ private:
      *  @var    size_t
      */
     size_t _splitsize = 10 * 1024 * 1024;
+
+    
+    /**
+     *  Called when result comes in
+     *  @param  queue
+     *  @param  buffer
+     *  @param  size
+     */
+    virtual void onReceived(TempQueue *queue, const char *buffer, size_t size) override
+    {
+        // assign to the result variable
+        _result = JSON::Object(buffer, size);
+
+        // we're done
+        _done = true;
+
+        // in case case of a task we may have the stderr in the main json right away
+        if (isTask() && _result.contains("stderr")) _error = true;
+
+        // if we don't have an error we return true
+        else if (_result.contains("error")) _error = true;
+    }
+    
+    /**
+     *  Called in case of an error
+     *  @param  queue
+     *  @param  message
+     */
+    virtual void onError(TempQueue *queue, const char *message) override
+    {
+        // we're done
+        _done = true;
+
+        // remember that we're in an error state
+        _error = true;
+    }
 
     /**
      *  Get access to the output file
@@ -525,19 +567,20 @@ public:
 
 
     /**
-     *  Start the job
+     *  Start the job - was the job started?
+     *  This method also returns true if the job was already started in the past.
      *  @return bool
      */
     bool start()
     {
         // if we already started or are done we bail out
-        if (_started || _done) return false;
+        if (_started || _done) return true;
 
         // creating the temp queue might end up in an exception if no RabbitMQ connection is available
         try
         {
             // we need a temporary queue, because we might need to wait for the answer
-            _tempqueue.reset(new TempQueue(_core));
+            _tempqueue.reset(new TempQueue(this, _core));
 
             // if we have an output object, we remove it to enforce that all data is flushed
             _output.reset();
@@ -547,6 +590,9 @@ public:
 
             // now we can publish the job JSON data to the RabbitMQ server
             if (_json.publish(_core.get())) return _started = true;
+            
+            // destruct the tempqueue
+            _tempqueue = nullptr;
 
             // the weird situation is that we can not connect to RabbitMQ...
             // (really weird because we did manage to create the temp queue...)
@@ -566,23 +612,20 @@ public:
      */
     bool wait()
     {
-        // if already ready
-        if (_done) return true;
+        // if the job is already done
+        if (_done) return !_error;
 
-        // we can only wait for a job if it was started
-        if (!_started && !start()) return false;
+        // make sure the job is started
+        if (!start()) return false;
 
-        // we should have a temporary queue, otherwise there is no way how we can wait for an answer
-        if (!_tempqueue) return false;
+        // if there is no temp queue, the job was detached, and we cannot wait
+        if (_tempqueue == nullptr) return false;
 
-        // consume the message from the temporary queue
-        _result = JSON::Object(_tempqueue->consume());
+        // wait for the result to appear in the temporary result queue
+        _tempqueue->wait();
 
-        // in case case of a task we may have the stderr in the main json right away
-        if (isTask() && _result.contains("stderr")) return false;
-
-        // if we don't have an error we return true
-        return !_result.contains("error");
+        // by now we know that we're done
+        return !_error;
     }
 
     /**

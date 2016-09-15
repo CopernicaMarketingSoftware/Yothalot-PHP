@@ -44,7 +44,8 @@ using TaskError         =   Error<TaskResult>;
 class Job :
     public Php::Base,
     public Php::Serializable,
-    public TupleHelper {
+    public TupleHelper
+{
 private:
     /**
      *  The actual implementation of the job
@@ -55,7 +56,7 @@ private:
      *  @var JobImpl
      */
     std::unique_ptr<JobImpl> _impl;
-
+    
 public:
     /**
      *  Constructor that creates an initial empty object

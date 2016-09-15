@@ -80,24 +80,70 @@ public:
     }
     
     /**
+     *  Expose a job that is ready
+     *  @return Php::Value
+     */
+    Php::Value ready()
+    {
+        // iterate over the jobs
+        for (auto iter : _jobs)
+        {
+            // get access to the job
+            Job *job = iter.first;
+            
+            // move on if the job is not ready
+            if (!job->ready()) continue;
+            
+            // this job is ready, store the php variable
+            Php::Value result = iter.second;
+            
+            // remove it from the map
+            _jobs.erase(job);
+            
+            // done
+            return result;
+        }
+        
+        // no job was ready
+        return nullptr;
+    }
+    
+    /**
      *  Wait for the first job that is ready, and return that job
      *  @return Php::Value
      */
     Php::Value wait()
     {
+        // skip if there are no more connections listed
+        if (_cores.empty()) return nullptr;
+        
         // we are going to create one big event loop with the file descriptors of all connections
         Descriptors descriptors;
-        
+    
         // check all connections
         for (const auto &core : _cores) descriptors.add(core->descriptors());
         
-        // construct the event loop
+        // construct an event loop based on all these file descriptors
         Loop loop(descriptors);
+
+        // keep looping as long as we have jobs
+        while (!_jobs.empty())
+        {
+            // get a job that is ready
+            auto job = ready();
+            
+            // we're done if we indeed has a ready job
+            if (!job.isNull()) return job;
+            
+            // let's take one more step in the event loop (this is not so efficient,
+            // better would be to run the event loop until we're sure that a job is ready)
+            loop.step(std::bind(&Pool::process, this, _1, _2));
+        }
         
-        // run the loop
-        loop.run(std::bind(&Pool::process, this, _1, _2));
+        // there are no more active jobs
+        _cores.clear();
         
-        // @todo better implementation
+        // impossible to return a job
         return nullptr;
     }
 };

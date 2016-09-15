@@ -422,6 +422,16 @@ public:
             default:            return nullptr;
         }
     }
+    
+    /**
+     *  Is the job ready yet?
+     *  @return bool
+     */
+    bool ready() const
+    {
+        // pass on to the implementation
+        return _impl->ready();
+    }
 
     /**
      *  Serialize the object to a string

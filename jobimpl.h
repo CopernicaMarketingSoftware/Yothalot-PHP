@@ -605,6 +605,15 @@ public:
             return false;
         }
     }
+    
+    /**
+     *  Is the job ready?
+     *  @return bool
+     */
+    bool ready() const
+    {
+        return _done;
+    }
 
     /**
      *  Wait for the job to be ready

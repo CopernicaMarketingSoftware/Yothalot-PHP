@@ -74,7 +74,7 @@ public:
     }
 
     /**
-     *  Destructor, cleans up the temporary directory.
+     *  Destructor, can be empty since the server is cleaning up this directory
      */
     virtual ~Directory() {}
 

@@ -27,6 +27,7 @@
 #include "output.h"
 #include "input.h"
 #include "record.h"
+#include "pool.h"
 
 /**
  *  The VERSION macro is going to be used as string with surrounded quotes
@@ -79,6 +80,7 @@ extern "C" {
         Php::Class<Stats>           stats          ("Yothalot\\Stats");
         Php::Class<DataStats>       datastats      ("Yothalot\\DataStats");
         Php::Class<Winner>          winner         ("Yothalot\\Winner");
+        Php::Class<Pool>            pool           ("Yothalot\\Pool");
 
         // register writer functions
         writer.method<&Writer::emit>("emit", {
@@ -271,7 +273,10 @@ extern "C" {
               .method<&Winner::started> ("started")
               .method<&Winner::finished>("finished")
               .method<&Winner::runtime> ("runtime");
-
+              
+        // register pool method
+        pool.method<&Pool::add>("add", { Php::ByVal("job", "Yothalot\\Job") })
+            .method<&Pool::wait>("wait");
 
         // create the map reduce interface
         Php::Interface mapreduce("Yothalot\\MapReduce");
@@ -333,6 +338,7 @@ extern "C" {
         extension.add(std::move(stats));
         extension.add(std::move(datastats));
         extension.add(std::move(winner));
+        extension.add(std::move(pool));
 
         // add the init method for use on the command line to our namespace, this
         // will result in `php -r "YothalotInit('mapper');"`

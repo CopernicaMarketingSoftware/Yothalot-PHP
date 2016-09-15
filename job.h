@@ -388,7 +388,7 @@ public:
     }
 
     /**
-     *  Execute this job and wait for it
+     *  Execute this job, but do not detach from it (we can still wait for it)
      *  @return         Result value (true or false)
      */
     Php::Value start()

@@ -35,6 +35,14 @@ private:
      *  @var Loop
      */
     Loop _loop;
+    
+    /**
+     *  AMQP channel that will be used for consuming
+     *  @var AMQP::TcpChannel
+     *
+     *  @todo the connection->channels() > 0 - do we still use that?
+     */
+    AMQP::TcpChannel _channel;
 
     /**
      *  Name of the queue
@@ -43,11 +51,70 @@ private:
     std::string _name;
 
     /**
+     *  Is the result available
+     *  @return bool
+     */
+    bool _ready = false;
+
+    /**
      *  String that is used by the "consume()" call
      *  @var std::string
      */
     std::string _result;
+    
+    
+    /**
+     *  Method that is called when the queue has been declared
+     *  @param  name
+     */
+    void onDeclared(const std::string &name)
+    {
+        // store the name
+        _name = name;
+        
+        // start the consumer
+        _channel.consume(_name).onReceived(std::bind(&TempQueue::onReceived, this, _1, _2));
+    }
+    
+    /**
+     *  Method that is called when the message has been consumed
+     *  @param  message
+     *  @param  deliverytag
+     */
+    void onReceived(const AMQP::Message &message, uint64_t deliveryTag)
+    {
+        // object is ready
+        _ready = true;
+        
+        // assign the response
+        _result.assign(message.body(), message.bodySize());
 
+        // ack the message
+        _channel.ack(deliveryTag);
+
+        // stop further consuming
+        _channel.cancel(_name).onFinalize(std::bind(&TempQueue::onFinished, this));
+    }
+    
+    /**
+     *  Channel errors
+     *  @param  message
+     */
+    void onError(const char *message)
+    {
+        // stop event loop
+        _loop.stop();
+    }
+    
+    /**
+     *  An operation is finished
+     */
+    void onFinished()
+    {
+        // stop event loop
+        _loop.stop();
+    }
+    
 public:
     /**
      *  Constructor
@@ -58,31 +125,19 @@ public:
      *
      *  @throws std::runtime_error
      */
-    TempQueue(const std::shared_ptr<Core> &core) : _core(core), _loop(core->descriptors())
+    TempQueue(const std::shared_ptr<Core> &core) : _core(core), _loop(core->descriptors()), _channel(core->connection())
     {
-        // we need a connection
-        if (!core->connection()) throw std::runtime_error("Not connected to RabbitMQ");
-
-        // we create a temporary channel for creating the queue
-        AMQP::TcpChannel channel(core->connection());
-
+        // set up error handler
+        _channel.onError(std::bind(&TempQueue::onError, this, _1));
+        
         // flags for creating the queue
-        auto flags = ::AMQP::autodelete|::AMQP::exclusive;
+        auto flags = ::AMQP::autodelete | ::AMQP::exclusive;
 
         // declare the queue
-        channel.declareQueue(flags).onSuccess([this](const std::string &name, uint32_t messagecount, uint32_t consumercount) {
-
-            // assign the queue name
-            _name = name;
-
-        }).onFinalize([this]() {
-
-            // stop the loop here so we can return from our start function
-            _loop.stop();
-        });
-
-        // run the event loop, until the temporary queue is created (this
-        // will call the onFinalized callback, in which we stop the event loop)
+        _channel.declareQueue(flags).onSuccess(std::bind(&TempQueue::onDeclared, this, _1)).onFinalize(std::bind(&TempQueue::onFinished, this));
+        
+        // run the event loop, because we need to know the name, this will run
+        // until the declareQueue operation is finished
         _loop.run(core->connection());
     }
 
@@ -91,14 +146,8 @@ public:
      */
     virtual ~TempQueue()
     {
-        // don't do a thing when not connected
-        if (!_core->connection()) return;
-
-        // special channel object needed for removing
-        AMQP::TcpChannel channel(_core->connection());
-
         // remove the queue from RabbitMQ
-        channel.removeQueue(_name);
+        _channel.removeQueue(_name);
     }
 
     /**
@@ -107,6 +156,7 @@ public:
      */
     const std::string &name() const
     {
+        // expose member
         return _name;
     }
 
@@ -116,40 +166,23 @@ public:
      */
     const std::string &consume()
     {
-        // return empty string when not connected
-        if (!_core->connection()) return _result;
-
-        // we create a special channel to start the consumer
-        auto channel = std::make_shared<AMQP::TcpChannel>(_core->connection());
-
-        // empty result for now
-        _result.clear();
+        // do we already have a result?
+        if (_ready) return _result;
         
-        // start consuming from our temporary queue
-        channel->consume(_name).onReceived([this, channel](const AMQP::Message &message, uint64_t deliveryTag, bool redelivered) {
-
-            // assign the response
-            _result.assign(message.body(), message.bodySize());
-
-            // ack the message
-            channel->ack(deliveryTag);
-
-            // stop further consuming
-            channel->cancel(_name);
-
-            // stop the event loop
-            _loop.stop();
-
-        }).onError([this](const char *message) {
-
-            // the consumer failed, we stop the event loop to prevent endless loop
-            _loop.stop();
-        });
-
-        // run the event loop until the consumer is ready
+        // start the event loop, it will come to an end when we have the result
         _loop.run(_core->connection());
-
-        // done
+        
+        // we expect to have the result
         return _result;
+    }
+    
+    /**
+     *  Is the result already available
+     *  @return bool
+     */
+    bool ready() const
+    {
+        // this is stored in a member
+        return _ready;
     }
 };

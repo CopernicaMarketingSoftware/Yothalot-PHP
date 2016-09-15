@@ -46,16 +46,22 @@ public:
     Loop(const Descriptors &descriptors) : _descriptors(descriptors) {}
 
     /**
+     *  Copy constructor
+     *  @param  that
+     */
+    Loop(const Loop &that) = delete;
+
+    /**
      *  Destructor
      */
     virtual ~Loop() = default;
 
     /**
      *  Do a single loop step
-     *  @param  connection      The connection
+     *  @param  callback        Callback method
      *  @return bool            True on success - false when there is nothing to step
      */
-    bool step(AMQP::TcpConnection *connection)
+    bool step(const std::function<void(int,int)> &callback)
     {
         // is there something to check?
         if (!_descriptors) return false;
@@ -88,8 +94,8 @@ public:
             // skip if not active
             if (flags == 0) continue;
 
-            // notify the connection
-            connection->process(fd, flags);
+            // notify the callback
+            callback(fd, flags);
 
             // jump out of loop - connection might no longer exist
             break;
@@ -101,10 +107,10 @@ public:
 
     /**
      *  Run the event loop to the end
-     *  @param  connection      The AMQP connection being monitored
+     *  @param  callback        Callback method
      *  @return int
      */
-    int run(AMQP::TcpConnection *connection)
+    int run(const std::function<void(int,int)> &callback)
     {
         // the user wants to run the loop - this means we're active
         _active = true;
@@ -115,7 +121,7 @@ public:
         while (_active)
         {
             // take one step
-            if (!step(connection)) break;
+            if (!step(callback)) break;
         }
 
         // loop is no longer active
@@ -123,6 +129,28 @@ public:
 
         // done
         return 0;
+    }
+
+    /**
+     *  Do a single loop step
+     *  @param  connection      The connection
+     *  @return bool            True on success - false when there is nothing to step
+     */
+    bool step(AMQP::TcpConnection *connection)
+    {
+        // pass on
+        return step(std::bind(&AMQP::TcpConnection::process, connection, _1, _2));
+    }
+
+    /**
+     *  Run the event loop
+     *  @param  connection      The connection
+     *  @return int
+     */
+    int run(AMQP::TcpConnection *connection)
+    {
+        // pass on
+        return run(std::bind(&AMQP::TcpConnection::process, connection, _1, _2));
     }
     
     /**

@@ -630,7 +630,7 @@ public:
      *  The underlying connection
      *  @return Core
      */
-    std::shared_ptr<Core> core() const
+    const std::shared_ptr<Core> &core() const
     {
         return _core;
     }

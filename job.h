@@ -471,4 +471,13 @@ public:
             throw Php::Exception(error.what());
         }
     }
+
+    /**
+     *  The underlying connection
+     *  @return Core
+     */
+    const std::shared_ptr<Core> &core() const
+    {
+        return _impl->core();
+    }
 };

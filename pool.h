@@ -22,13 +22,13 @@ private:
      *  All the AMQP connections used by all the jobs
      *  @var std::vector
      */
-    std::vector<std::shared_ptr<Core>> _connections;
+    std::set<std::shared_ptr<Core>> _connections;
 
     /**
      *  All jobs that are being monitored by this pool
-     *  @var std::vector
+     *  @var std::map
      */
-    std::vector<Php::Value> _jobs;
+    std::map<Job*,Php::Value> _jobs;
 
 
 public:
@@ -54,10 +54,14 @@ public:
         // must be a yothalot job
         if (!phpjob.instanceOf("Yothalot\\Job")) throw Php::Exception("Not a valid job supplied");
         
-        // @todo prevent doubles
+        // convert to the job wrapper
+        auto *wrapper = (Job *)phpjob.implementation();
         
-        // add to the vector
-        _jobs.push_back(phpjob);
+        // add the jobimpl class
+        _jobs.insert(std::make_pair(wrapper, phpjob));
+        
+        // add the core connection
+        _connections.insert(wrapper->core());
     }
     
     /**

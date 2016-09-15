@@ -40,12 +40,6 @@ public:
     TaskResult(const JSON::Object &output) : _json(output) {}
 
     /**
-     *  Constructor
-     *  @param  output
-     */
-    TaskResult(const std::shared_ptr<JSON::Object> &output) : _json(*output) {}
-
-    /**
      *  Destructor
      */
     virtual ~TaskResult() {}

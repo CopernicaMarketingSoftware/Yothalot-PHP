@@ -39,12 +39,6 @@ public:
     MapReduceResult(const JSON::Object &output) : _json(output) {}
 
     /**
-     *  Constructor
-     *  @param  output
-     */
-    MapReduceResult(const std::shared_ptr<JSON::Object> &output) : _json(*output) {}
-
-    /**
      *  Destructor
      */
     virtual ~MapReduceResult() = default;

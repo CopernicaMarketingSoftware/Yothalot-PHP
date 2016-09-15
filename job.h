@@ -411,13 +411,13 @@ public:
         {
             case Algorithm::race:
                 if (success)    return Php::Object{ "Yothalot\\RaceResult",         new RaceResult      { _impl->result()   }};
-                else            return Php::Object{ "Yothalot\\RaceError",          new RaceError       { *_impl->result()  }};
+                else            return Php::Object{ "Yothalot\\RaceError",          new RaceError       { _impl->result()  }};
             case Algorithm::mapreduce:
                 if (success)    return Php::Object{ "Yothalot\\MapReduceResult",    new MapReduceResult { _impl->result()   }};
-                else            return Php::Object{ "Yothalot\\MapReduceError",     new MapReduceError  { *_impl->result()  }};
+                else            return Php::Object{ "Yothalot\\MapReduceError",     new MapReduceError  { _impl->result()  }};
             case Algorithm::job:
                 if (success)    return Php::Object{ "Yothalot\\TaskResult",         new TaskResult      { _impl->result()   }};
-                else            return Php::Object{ "Yothalot\\TaskError",          new TaskError       { *_impl->result()  }};
+                else            return Php::Object{ "Yothalot\\TaskError",          new TaskError       { _impl->result()  }};
             default:            return nullptr;
         }
     }

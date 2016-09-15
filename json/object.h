@@ -36,9 +36,7 @@ public:
     /**
      *  Constructor
      */
-    Object() : Base(json_type_object)
-    {
-    }
+    Object() : Base(json_type_object) {}
 
     /**
      *  Constructor

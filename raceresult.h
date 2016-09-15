@@ -40,12 +40,6 @@ public:
     RaceResult(const JSON::Object &output) : _json(output) {}
 
     /**
-     *  Constructor
-     *  @param  output
-     */
-    RaceResult(const std::shared_ptr<JSON::Object> &output) : _json(*output) {}
-
-    /**
      *  Destructor
      */
     virtual ~RaceResult() = default;

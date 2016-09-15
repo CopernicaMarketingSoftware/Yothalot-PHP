@@ -77,9 +77,9 @@ private:
 
     /**
      *  Result data sent back
-     *  @var std::shared_ptr<JSON::Object>
+     *  @var JSON::Object
      */
-    std::shared_ptr<JSON::Object> _result;
+    JSON::Object _result;
 
     /**
      *  Split size for the file
@@ -576,20 +576,20 @@ public:
         if (!_tempqueue) return false;
 
         // consume the message from the temporary queue
-        _result = std::make_shared<JSON::Object>(_tempqueue->consume());
+        _result = JSON::Object(_tempqueue->consume());
 
         // in case case of a task we may have the stderr in the main json right away
-        if (isTask() && _result->contains("stderr")) return false;
+        if (isTask() && _result.contains("stderr")) return false;
 
         // if we don't have an error we return true
-        return !_result->contains("error");
+        return !_result.contains("error");
     }
 
     /**
      *  Retrieve the result that was generated
-     *  @return std::shared_ptr
+     *  @return JSON::Object
      */
-    const std::shared_ptr<JSON::Object> &result() const
+    const JSON::Object &result() const
     {
         // expose member
         return _result;

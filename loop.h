@@ -27,23 +27,10 @@ class Loop
 {
 private:
     /**
-     *  Filedescriptors for readability and writability
-     *  @var std::set
+     *  Reference to the filedescriptors
+     *  @var Descriptors
      */
-    std::set<int> _read;
-    std::set<int> _write;
-
-    /**
-     *  All filedescriptors
-     *  @var std::set
-     */
-    std::set<int> _all;
-
-    /**
-     *  Highest descriptor in the set
-     *  @var int
-     */
-    int _highest = 0;
+    const Descriptors &_descriptors;
 
     /**
      *  Is the loop active?
@@ -54,52 +41,14 @@ private:
 public:
     /**
      *  Constructor
+     *  @param  descriptors
      */
-    Loop() = default;
+    Loop(const Descriptors &descriptors) : _descriptors(descriptors) {}
 
     /**
      *  Destructor
      */
     virtual ~Loop() = default;
-
-    /**
-     *  Add a filedescriptor
-     *  @param  fd
-     *  @param  flags
-     */
-    void add(int fd, int flags)
-    {
-        // should we remove instead?
-        if (flags == 0) return remove(fd);
-
-        // add to all set
-        _all.insert(fd);
-
-        // add to appropriate sets
-        if (flags & AMQP::readable) _read.insert(fd);
-        if (flags & AMQP::writable) _write.insert(fd);
-
-        // was this the highest?
-        if (fd > _highest) _highest = fd;
-    }
-
-    /**
-     *  Remove a filedescriptor
-     *  @param  fd
-     */
-    void remove(int fd)
-    {
-        // remove from all sets
-        _all.erase(fd);
-        _read.erase(fd);
-        _write.erase(fd);
-
-        // was this the highest?
-        if (fd != _highest) return;
-
-        // we need to find out the new highest number
-        _highest = _all.empty() ? 0 : *_all.rbegin();
-    }
 
     /**
      *  Do a single loop step
@@ -109,14 +58,14 @@ public:
     bool step(AMQP::TcpConnection *connection)
     {
         // is there something to check?
-        if (_all.empty()) return false;
-
-        // create two sets
-        FdSet readable(_read);
-        FdSet writable(_write);
+        if (!_descriptors) return false;
+        
+        // the readable and writable sets
+        FdSet readable(_descriptors.readable());
+        FdSet writable(_descriptors.writable());
 
         // wait for the sets
-        auto result = select(_highest + 1, readable, writable, nullptr, nullptr);
+        auto result = select(_descriptors.highest() + 1, readable, writable, nullptr, nullptr);
 
         // on signal errors we still return true because the event loop is still valid,
         // and calling step() again is meaningful
@@ -127,7 +76,7 @@ public:
         if (result <= 0) return false;
 
         // check which filedescriptors is readable
-        for (auto fd : _all)
+        for (auto fd : _descriptors)
         {
             // the readable + writable flags
             int flags = 0;
@@ -175,13 +124,14 @@ public:
         // done
         return 0;
     }
-
+    
     /**
-     *  Stop running the loop
+     *  Stop the event loop, this can be called if you started the loop with run to stop it
      */
     void stop()
     {
-        // no longer active
+        // reset the boolean
         _active = false;
     }
 };
+

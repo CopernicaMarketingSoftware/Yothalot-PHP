@@ -20,6 +20,7 @@
 
 #include "json/object.h"
 #include "tuplehelper.h"
+#include "descriptors.h"
 #include "loop.h"
 
 /**
@@ -35,10 +36,10 @@ private:
     JSON::Object _json;
 
     /**
-     *  A thread loop that the actual connection will run on
-     *  @var  Loop
+     *  The file descriptors used by the connection
+     *  @var Descriptors
      */
-    Loop _loop;
+    Descriptors _descriptors;
 
     /**
      *  The underlying TCP connection
@@ -72,8 +73,8 @@ private:
      */
     virtual void onConnected(AMQP::TcpConnection *connection) override
     {
-        // stop the loop
-        _loop.stop();
+        // store the connection
+        _connection.reset(connection);
     }
 
     /**
@@ -95,7 +96,7 @@ private:
     virtual void monitor(AMQP::TcpConnection *connection, int fd, int flags) override
     {
         // add the filedescriptor to the loop
-        _loop.add(fd, flags);
+        _descriptors.add(fd, flags);
     }
 
     /**
@@ -107,20 +108,30 @@ private:
         // not necessary if already connected
         if (_connection) return true;
 
-        // create the connection
-        _connection.reset(new AMQP::TcpConnection(this, AMQP::Address(std::string(_json.c_str("host")), 5672,
-                                                  ::AMQP::Login(std::string(_json.c_str("user")), std::string(_json.c_str("password"))),
-                                                  std::string(_json.c_str("vhost")))));
+        // the connection address
+        AMQP::Address address(_json.c_str("host"), 5672, ::AMQP::Login(_json.c_str("user"), _json.c_str("password")), _json.c_str("vhost"));
 
-        // check if the connection still exists (connection will be reset by the
-        // onError() function if the connection ran into a problem)
+        // create the connection (it will the stored as a member in the onConnected() method)
+        auto *connection = new AMQP::TcpConnection(this, address);
+
+        // keep running the event loop, until the connection is valid
+        while (!_connection && _error.empty())
+        {
+            // construct the event loop
+            Loop loop(_descriptors);
+            
+            // run it
+            loop.step(connection);
+        }
+        
+        // was the connection stored as member?
         if (_connection) return true;
 
         // report error to PHP space
         if (!_error.empty()) Php::warning << _error << std::endl;
 
         // done
-        return true;
+        return false;
     }
 
 public:
@@ -139,9 +150,10 @@ public:
      *  @param  jobs
      *
      *  @throws std::runtime_error
+     * 
+     *  @todo why std::string?
      */
-    Core(const std::string &host, const std::string &user, const std::string &password, const std::string &vhost, const std::string &exchange, const std::string &mapreduce, const std::string &races, const std::string &jobs) :
-        _connection(new AMQP::TcpConnection(this, AMQP::Address(host, 5672, ::AMQP::Login(user, password), vhost)))
+    Core(const std::string &host, const std::string &user, const std::string &password, const std::string &vhost, const std::string &exchange, const std::string &mapreduce, const std::string &races, const std::string &jobs)
     {
         // store all properties in the JSON
         _json.set("host", host);
@@ -152,14 +164,26 @@ public:
         _json.set("mapreduce", mapreduce);
         _json.set("races", races);
         _json.set("jobs", jobs);
-
-        // go run the event loop until the connection is connected
-        _loop.run(_connection.get());
-
-        // if the connection is set back to null, it means that the connection failed,
-        // otherwise the connection is still in a valid state
+        
+        // construct a connection
+        auto *connection = new AMQP::TcpConnection(this, AMQP::Address(host, 5672, ::AMQP::Login(user, password), vhost));
+        
+        // keep running the event loop, until the connection is valid
+        while (!_connection && _error.empty())
+        {
+            // construct the event loop
+            Loop loop(_descriptors);
+            
+            // run it
+            loop.step(connection);
+        }
+        
+        // was the connection stored as member?
         if (_connection) return;
-
+        
+        // we apparently have a failure
+        delete connection;
+        
         // connection was reset, this means that the onError() method was called
         throw std::runtime_error(_error);
     }
@@ -182,9 +206,22 @@ public:
         // close the connection
         _connection->close();
 
-        // wait for the event loop to finish
-        while (_connection) _loop.run(_connection.get());
+        // create the event loop
+        Loop loop(_descriptors);
+
+        // run the loop (it only contains the connection, so it runs until the connection is closed)
+        loop.run(_connection.get());
     };
+
+    /**
+     *  Expose the filedescriptors
+     *  @return Descriptors
+     */
+    const Descriptors &descriptors() const
+    {
+        // expose member
+        return _descriptors;
+    }
 
     /**
      *  Method to publish a JSON encoded message to the mapreduce queue
@@ -249,29 +286,14 @@ public:
         // flush is pointless without a connection
         if (!_connection) return;
 
+        // create an event loop with just these file descriptors
+        Loop loop(_descriptors);
+
         // step through the loop as long as we have active channels
         // we're working in such a way that all the channels drop away the second
         // they're no longer needed, meaning that we've pushed/retrieved everything
         // from rabbitmq the second we have no channels left
-        while (_connection->channels() > 0) _loop.step(_connection.get());
-    }
-
-    /**
-     *  Stop the event loop
-     */
-    void stop()
-    {
-        // pass on to the loop
-        _loop.stop();
-    }
-
-    /**
-     *  Run the event loop
-     */
-    void run()
-    {
-        // pass on to the loop
-        _loop.run(_connection.get());
+        while (_connection->channels() > 0) loop.step(_connection.get());
     }
 
     /**

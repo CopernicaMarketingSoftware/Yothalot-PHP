@@ -31,6 +31,12 @@ private:
     std::shared_ptr<Core> _core;
 
     /**
+     *  The event loop
+     *  @var Loop
+     */
+    Loop _loop;
+
+    /**
      *  Name of the queue
      *  @var std::string
      */
@@ -52,7 +58,7 @@ public:
      *
      *  @throws std::runtime_error
      */
-    TempQueue(const std::shared_ptr<Core> &core) : _core(core)
+    TempQueue(const std::shared_ptr<Core> &core) : _core(core), _loop(core->descriptors())
     {
         // we need a connection
         if (!core->connection()) throw std::runtime_error("Not connected to RabbitMQ");
@@ -64,20 +70,20 @@ public:
         auto flags = ::AMQP::autodelete|::AMQP::exclusive;
 
         // declare the queue
-        channel.declareQueue(flags).onSuccess([this, core](const std::string &name, uint32_t messagecount, uint32_t consumercount) {
+        channel.declareQueue(flags).onSuccess([this](const std::string &name, uint32_t messagecount, uint32_t consumercount) {
 
             // assign the queue name
             _name = name;
 
-        }).onFinalize([core]() {
+        }).onFinalize([this]() {
 
             // stop the loop here so we can return from our start function
-            core->stop();
+            _loop.stop();
         });
 
         // run the event loop, until the temporary queue is created (this
         // will call the onFinalized callback, in which we stop the event loop)
-        core->run();
+        _loop.run(core->connection());
     }
 
     /**
@@ -118,7 +124,7 @@ public:
 
         // empty result for now
         _result.clear();
-
+        
         // start consuming from our temporary queue
         channel->consume(_name).onReceived([this, channel](const AMQP::Message &message, uint64_t deliveryTag, bool redelivered) {
 
@@ -132,16 +138,16 @@ public:
             channel->cancel(_name);
 
             // stop the event loop
-            _core->stop();
+            _loop.stop();
 
         }).onError([this](const char *message) {
 
             // the consumer failed, we stop the event loop to prevent endless loop
-            _core->stop();
+            _loop.stop();
         });
 
         // run the event loop until the consumer is ready
-        _core->run();
+        _loop.run(_core->connection());
 
         // done
         return _result;

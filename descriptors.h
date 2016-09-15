@@ -56,6 +56,33 @@ public:
     virtual ~Descriptors() = default;
 
     /**
+     *  Cast to boolean
+     *  @return bool
+     */
+    operator bool () const { return !_all.empty(); }
+    bool operator! () const { return _all.empty(); }
+
+    /**
+     *  Expose the readable and writable sets
+     *  @return std::set
+     */
+    const std::set<int> &readable() const { return _read; }
+    const std::set<int> &writable() const { return _write; }
+
+    /**
+     *  Highest value in the set
+     *  @return int
+     */
+    int highest() const { return _highest; }
+
+    /**
+     *  Iterators to traverse the filedescriptors
+     *  @return std::set<int>::const_iterato
+     */
+    std::set<int>::const_iterator begin() const { return _all.begin(); }
+    std::set<int>::const_iterator end() const { return _all.end(); }
+
+    /**
      *  Add another set of descriptors
      *  @param  that
      */

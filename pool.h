@@ -16,7 +16,7 @@
 /**
  *  Class definition
  */
-class Pool : public Php::Base
+class Pool : public Php::Base, public Php::Countable
 {
 private:
     /**
@@ -83,7 +83,7 @@ public:
      *  Expose a job that is ready
      *  @return Php::Value
      */
-    Php::Value ready()
+    Php::Value fetch()
     {
         // iterate over the jobs
         for (auto iter : _jobs)
@@ -109,6 +109,24 @@ public:
     }
     
     /**
+     *  Size of the job
+     *  @return Php::Value
+     */
+    Php::Value size() const
+    {
+        return (int)_jobs.size();
+    }
+    
+    /**
+     *  Size of the job
+     *  @return unsigned
+     */
+    virtual long count() override
+    {
+        return _jobs.size();
+    }
+    
+    /**
      *  Wait for the first job that is ready, and return that job
      *  @return Php::Value
      */
@@ -130,7 +148,7 @@ public:
         while (!_jobs.empty())
         {
             // get a job that is ready
-            auto job = ready();
+            auto job = fetch();
             
             // we're done if we indeed has a ready job
             if (!job.isNull()) return job;

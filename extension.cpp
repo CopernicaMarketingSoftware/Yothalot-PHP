@@ -276,7 +276,9 @@ extern "C" {
               
         // register pool method
         pool.method<&Pool::add>("add", { Php::ByVal("job", "Yothalot\\Job") })
-            .method<&Pool::wait>("wait");
+            .method<&Pool::wait>("wait")
+            .method<&Pool::fetch>("fetch")
+            .method<&Pool::size>("size");
 
         // create the map reduce interface
         Php::Interface mapreduce("Yothalot\\MapReduce");

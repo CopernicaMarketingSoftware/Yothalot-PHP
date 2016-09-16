@@ -59,9 +59,10 @@ public:
     /**
      *  Do a single loop step
      *  @param  callback        Callback method
-     *  @return bool            True on success - false when there is nothing to step
+     *  @param  block           Is it ok to block?
+     *  @return bool            Was there any activity?
      */
-    bool step(const std::function<void(int,int)> &callback)
+    int step(const std::function<void(int,int)> &callback, bool block = true)
     {
         // is there something to check?
         if (!_descriptors) return false;
@@ -69,17 +70,25 @@ public:
         // the readable and writable sets
         FdSet readable(_descriptors.readable());
         FdSet writable(_descriptors.writable());
+        
+        // construct a timeout
+        struct timeval timeout;
+        
+        // timeout of zero seconds
+        memset(&timeout, 0, sizeof(struct timeval));
 
         // wait for the sets
-        auto result = select(_descriptors.highest() + 1, readable, writable, nullptr, nullptr);
+        auto result = select(_descriptors.highest() + 1, readable, writable, nullptr, block ? nullptr : &timeout);
 
         // on signal errors we still return true because the event loop is still valid,
         // and calling step() again is meaningful
-        if (result < 0 || errno == EINTR) return true;
+        if (result < 0 && errno == EINTR) return true;
+        
+        // if no files are active, things are also valid
+        if (result == 0) return false;
 
-        // big problems on all other errors, or when no files are active (which is 
-        // completely impossible because we have no timer, so by now a file MUST be active)
-        if (result <= 0) return false;
+        // big problems on all other errors
+        if (result < 0) return false;
 
         // check which filedescriptors is readable
         for (auto fd : _descriptors)
@@ -101,16 +110,15 @@ public:
             break;
         }
 
-        // we are ready
+        // we are ready, and there was activity
         return true;
     }
 
     /**
      *  Run the event loop to the end
      *  @param  callback        Callback method
-     *  @return int
      */
-    int run(const std::function<void(int,int)> &callback)
+    void run(const std::function<void(int,int)> &callback)
     {
         // the user wants to run the loop - this means we're active
         _active = true;
@@ -121,20 +129,17 @@ public:
         while (_active)
         {
             // take one step
-            if (!step(callback)) break;
+            if (!step(callback, true)) break;
         }
 
         // loop is no longer active
         _active = false;
-
-        // done
-        return 0;
     }
 
     /**
      *  Do a single loop step
      *  @param  connection      The connection
-     *  @return bool            True on success - false when there is nothing to step
+     *  @return bool            True if there was activity
      */
     bool step(AMQP::TcpConnection *connection)
     {
@@ -145,12 +150,11 @@ public:
     /**
      *  Run the event loop
      *  @param  connection      The connection
-     *  @return int
      */
-    int run(AMQP::TcpConnection *connection)
+    void run(AMQP::TcpConnection *connection)
     {
         // pass on
-        return run(std::bind(&AMQP::TcpConnection::process, connection, _1, _2));
+        run(std::bind(&AMQP::TcpConnection::process, connection, _1, _2));
     }
     
     /**

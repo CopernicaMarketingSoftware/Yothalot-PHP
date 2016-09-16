@@ -43,6 +43,36 @@ private:
         for (const auto &core : _cores) core->connection()->process(fd, flags);
     }
 
+    /**
+     *  Get a job that is ready
+     *  @return Php::Value
+     */
+    Php::Value extract()
+    {
+        // iterate over the jobs
+        for (auto iter : _jobs)
+        {
+            // get access to the job
+            Job *job = iter.first;
+            
+            // move on if the job is not ready
+            if (!job->ready()) continue;
+            
+            // this job is ready, store the php variable
+            Php::Value result = iter.second;
+            
+            // remove it from the map
+            _jobs.erase(job);
+            
+            // done
+            return result;
+        }
+        
+        // no job was ready
+        return nullptr;
+    }
+
+
 public:
     /**
      *  Constructor
@@ -85,27 +115,23 @@ public:
      */
     Php::Value fetch()
     {
-        // iterate over the jobs
-        for (auto iter : _jobs)
-        {
-            // get access to the job
-            Job *job = iter.first;
-            
-            // move on if the job is not ready
-            if (!job->ready()) continue;
-            
-            // this job is ready, store the php variable
-            Php::Value result = iter.second;
-            
-            // remove it from the map
-            _jobs.erase(job);
-            
-            // done
-            return result;
-        }
+        // skip if there are no more connections listed
+        if (_cores.empty()) return nullptr;
         
-        // no job was ready
-        return nullptr;
+        // we are going to create one big event loop with the file descriptors of all connections
+        Descriptors descriptors;
+    
+        // check all connections
+        for (const auto &core : _cores) descriptors.add(core->descriptors());
+
+        // construct an event loop based on all these file descriptors
+        Loop loop(descriptors);
+        
+        // run the event loop, but do not block
+        while (loop.step(std::bind(&Pool::process, this, _1, _2), false)) { /* keep iterating */ }
+        
+        // extract a job
+        return extract();
     }
     
     /**
@@ -148,7 +174,7 @@ public:
         while (!_jobs.empty())
         {
             // get a job that is ready
-            auto job = fetch();
+            auto job = extract();
             
             // we're done if we indeed has a ready job
             if (!job.isNull()) return job;

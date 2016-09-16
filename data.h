@@ -293,8 +293,11 @@ public:
      */
     void maxfinalizers(int value)
     {
+        // if max finalizer is set to 0, we completely remove it
+        if (value == 0) remove("finalizer");
+        
         // update JSON
-        object("finalizer").object("limit").set("processes", value);
+        else object("finalizer").object("limit").set("processes", value);
     }
 
     /**

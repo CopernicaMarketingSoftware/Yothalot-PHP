@@ -18,8 +18,10 @@
 /**
  *  Dependencies
  */
+#include <limits.h>
 #include "data.h"
 #include "tempqueue.h"
+#include "wrapper.h"
 
 /**
  *  Class definition
@@ -27,6 +29,12 @@
 class JobImpl : private TempQueue::Owner
 {
 private:
+    /**
+     *  The PHP variable holding the user-supplied algorithm
+     *  @var Php::Value
+     */
+    Php::Value _algo;
+
     /**
      *  All JSON data for the job
      *  @var Data
@@ -113,6 +121,35 @@ private:
 
         // if we don't have an error we return true
         else if (_result.contains("error")) _error = true;
+        
+        // nothing left to be done on error, or when this is not a map-reduce job
+        if (_error || !isMapReduce() || _result.object("finalizers").integer("processes") > 0) return;
+        
+        // hey. the finalizer did not yet run on the yothalot cluster, that means that we
+        // have to do the finalizing in this process
+        Wrapper mapreduce(_algo);
+        
+        // create the write task
+        Yothalot::WriteTask task(base(), &mapreduce);
+        
+        // construct the full directory name
+        Directory dir(_result.c_str("directory"));
+        
+        // traverse over the dir
+        dir.traverse([&task, &dir](const char *name) {
+            
+            // construct absolute path name of the file
+            std::string fullname(dir.full());
+            
+            // add directory name
+            fullname.append("/").append(name);
+            
+            // pass to the task
+            task.process(fullname.data(), 0, INT_MAX, 0, INT_MAX);
+        });
+        
+        // remove the directory
+        dir.remove();
     }
     
     /**
@@ -158,6 +195,7 @@ public:
      *  @param  algo        User supplied algorithm object
      */
     JobImpl(const std::shared_ptr<Core> &core, const Php::Value &algo) :
+        _algo(algo),
         _json(algo),
         _core(core)
     {
@@ -171,12 +209,7 @@ public:
             if (_json.isMapReduce()) _json.directory(_directory->relative(), true, nullptr);
 
             // either a race job or an old mapreduce job; add the directory directly
-            else
-            {
-                // add the directory
-                _json.directory(_directory->relative());
-            }
-
+            else _json.directory(_directory->relative());
         }
         catch (...)
         {
@@ -203,10 +236,10 @@ public:
         // does the input json contain a specific directory?
         if (!_json.directory()) return;
 
-        // input json contains a directory, construct this (watch out!
-        // this might throw an exception if the dir is invalid/can not
-        // be read
+        // input json contains a directory, construct this
         _directory.reset(new Directory(_json.directory()));
+
+		// @todo revive algorithm object
     }
 
     /**

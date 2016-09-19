@@ -160,6 +160,15 @@ private:
      */
     void onRemoved(size_t messages)
     {
+        // close the channel
+        _channel.close().onSuccess(std::bind(&TempQueue::onClosed, this));
+    }
+    
+    /**
+     *  Callback when channel was closed
+     */
+    void onClosed()
+    {
         // object is ready
         _ready = true;
 

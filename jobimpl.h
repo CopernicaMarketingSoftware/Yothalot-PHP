@@ -30,12 +30,6 @@ class JobImpl : private TempQueue::Owner
 {
 private:
     /**
-     *  The PHP variable holding the user-supplied algorithm
-     *  @var Php::Value
-     */
-    Php::Value _algo;
-
-    /**
      *  All JSON data for the job
      *  @var Data
      */
@@ -127,7 +121,7 @@ private:
         
         // hey. the finalizer did not yet run on the yothalot cluster, that means that we
         // have to do the finalizing in this process
-        Wrapper mapreduce(_algo);
+        Wrapper mapreduce(_json.finalizer());
         
         // create the write task
         Yothalot::WriteTask task(base(), &mapreduce);
@@ -195,7 +189,6 @@ public:
      *  @param  algo        User supplied algorithm object
      */
     JobImpl(const std::shared_ptr<Core> &core, const Php::Value &algo) :
-        _algo(algo),
         _json(algo),
         _core(core)
     {

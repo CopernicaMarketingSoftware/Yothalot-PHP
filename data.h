@@ -4,7 +4,7 @@
  *  Class that represents the JSON object that holds all JOB data
  *
  *  @author Emiel Bruijntjes <emiel.bruijntjes@copernica.com>
- *  @copyright 2015 Copernica BV
+ *  @copyright 2015 - 2016 Copernica BV
  */
 
 /**
@@ -18,6 +18,7 @@
 #include "json/object.h"
 #include "json/array.h"
 #include "algorithm.h"
+#include "revived.h"
 #include <phpcpp.h>
 
 /**
@@ -27,6 +28,12 @@ class Data : public JSON::Object, private TupleHelper
 {
 private:
     /**
+     *  The user supplied object
+     *  @var Php::Value
+     */
+    Php::Value _php;
+
+    /**
      *  If the job is started on a node that is not mounted to glusterFS,
      *  the data is going to be stored in the JSON as well
      *  @var JSON::Array
@@ -35,16 +42,12 @@ private:
 
     /**
      *  What sort of algorithm are we going to run?
+     *  @var Algorithm
      */
     Algorithm _algorithm = Algorithm::job;
-    // enum {
-    //     algorithm_mapreduce,
-    //     algorithm_race,
-    //     algorithm_job
-    // } _algorithm = algorithm_job;
 
     /**
-     *  Utility class for an executable (the mapper, reducer or finalizer
+     *  Utility class for an executable (the mapper, reducer or finalizer)
      */
     class Executable : public JSON::Object
     {
@@ -112,7 +115,7 @@ public:
      *  Constructor
      *  @param  algo       User-supplied algorithm object
      */
-    Data(const Php::Value &algo)
+    Data(const Php::Value &algo) : _php(algo)
     {
         // construct the input data
         InputData input(algo);
@@ -162,13 +165,11 @@ public:
      *  Constructor for unserialized input data
      *  @param  object          The unserialized JSON object
      */
-    Data(const JSON::Object &object) :
-        JSON::Object(object),
-        _input(object.array("input"))
+    Data(const JSON::Object &object) : JSON::Object(object), _input(object.array("input"))
     {
         // Check if we are a mapreduce, race or regular task
         // if we contain mapper information we are a map reduce algorithm
-        if (contains("mapper") && contains("reducer") && contains("finalizer")) _algorithm = Algorithm::mapreduce;
+        if (contains("mapper") && contains("reducer")) _algorithm = Algorithm::mapreduce;
         
         // if we are not a map reduce algorithm but have input we are a race algorithm
         else if (contains("input")) _algorithm = Algorithm::race;
@@ -182,6 +183,27 @@ public:
      *  Destructor
      */
     virtual ~Data() = default;
+
+    /**
+     *  Get the user-supplied algorithm object that can run the finalizer
+     *  @return Php::Value
+     */
+    Php::Value finalizer()
+    {
+        // is it already set?
+        if (_php.isObject()) return _php;
+        
+        // otherwise we have to revive it from the input (the mapper and reducer members use exactly
+        // the same object as the finalizer, and because the "finalizer" property is not always set,
+        // we revive the object from the mapper)
+        auto mapper = object("mapper");
+        
+        // revive the object
+        Revived revived(mapper.c_str("stdin"));
+        
+        // expose the object
+        return _php = revived.object();
+    }
 
     /**
      *  Simple checkers for race and mapreduce

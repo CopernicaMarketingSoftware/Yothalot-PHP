@@ -83,7 +83,7 @@ private:
      *  Was the consumer cancelled?
      *  @var bool
      */
-    bool _cancelled;
+    bool _cancelled = false;
 
     /**
      *  Is the object ready, or do we still have to clean up things?

@@ -119,31 +119,45 @@ private:
         // nothing left to be done on error, or when this is not a map-reduce job
         if (_error || !isMapReduce() || _result.object("finalizers").integer("processes") > 0) return;
         
-        // hey. the finalizer did not yet run on the yothalot cluster, that means that we
-        // have to do the finalizing in this process
-        Wrapper mapreduce(_json.finalizer());
+        // name of the directory that contains the result files
+        const char *directory = _result.c_str("directory");
         
-        // create the write task
-        Yothalot::WriteTask task(base(), &mapreduce);
+        // leap out if there is no directory with files
+        if (directory == nullptr) return;
         
-        // construct the full directory name
-        Directory dir(_result.c_str("directory"));
-        
-        // traverse over the dir
-        dir.traverse([&task, &dir](const char *name) {
+        // prevent exceptions (the Directory object might throw)
+        try
+        {
+            // hey. the finalizer did not yet run on the yothalot cluster, that means that we
+            // have to do the finalizing in this process
+            Wrapper mapreduce(_json.finalizer());
             
-            // construct absolute path name of the file
-            std::string fullname(dir.full());
+            // create the write task
+            Yothalot::WriteTask task(base(), &mapreduce);
             
-            // add directory name
-            fullname.append("/").append(name);
+            // construct the full directory name
+            Directory dir(_result.c_str("directory"));
             
-            // pass to the task
-            task.process(fullname.data(), 0, INT_MAX, 0, INT_MAX);
-        });
-        
-        // remove the directory
-        dir.remove();
+            // traverse over the dir
+            dir.traverse([&task, &dir](const char *name) {
+                
+                // construct absolute path name of the file
+                std::string fullname(dir.full());
+                
+                // add directory name
+                fullname.append("/").append(name);
+                
+                // pass to the task
+                task.process(fullname.data(), 0, INT_MAX, 0, INT_MAX);
+            });
+            
+            // remove the directory
+            dir.remove();
+        }
+        catch (...)
+        {
+            // the result failed
+        }
     }
     
     /**

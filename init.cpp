@@ -16,6 +16,7 @@
 #include "base.h"
 #include "stdin.h"
 #include "tempdir.h"
+#include "cache.h"
 #include <yothalot.h>
 
 /**
@@ -40,9 +41,12 @@ static int map(const Stdin &input)
 
         // get the temp directory
         static TempDir tempdir;
+        
+        // construct cache settings
+        Cache cache;
 
         // create the task
-        Yothalot::MapTask task(base(), &mapreduce, modulo, tempdir);
+        Yothalot::MapTask task(base(), &mapreduce, modulo, cache, tempdir);
 
         // add the data to process
         task.process(input.data(), input.size());
@@ -77,8 +81,11 @@ static int reduce(const Stdin &input)
         // wrap php object
         Wrapper mapreduce(input.object());
 
+        // the cache settings
+        Cache cache;
+
         // create the task
-        Yothalot::ReduceTask task(base(), &mapreduce);
+        Yothalot::ReduceTask task(base(), &mapreduce, cache);
 
         // add the data to process
         task.process(input.data(), input.size());

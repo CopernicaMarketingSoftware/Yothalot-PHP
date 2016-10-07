@@ -4,7 +4,7 @@
  *  Startup file for the PHP extension
  *
  *  @author    Toon Schoenmakers <toon.schoenmakers@copernica.com>
- *  @copyright 2015 Copernica BV
+ *  @copyright 2015 - 2016 Copernica BV
  */
 
 /**
@@ -347,14 +347,17 @@ extern "C" {
         extension.add<yothalotInit>("YothalotInit", { Php::ByVal("mode", Php::Type::String) });
 
         // add all the ini settings for the connection
-        extension.add(Php::Ini{ "yothalot.host",         "localhost"    });
-        extension.add(Php::Ini{ "yothalot.user",         "guest"        });
-        extension.add(Php::Ini{ "yothalot.password",     "guest"        });
-        extension.add(Php::Ini{ "yothalot.vhost",        "/"            });
-        extension.add(Php::Ini{ "yothalot.exchange",     ""             });
-        extension.add(Php::Ini{ "yothalot.mapreduce",    "mapreduce"    });
-        extension.add(Php::Ini{ "yothalot.races",        "races"        });
-        extension.add(Php::Ini{ "yothalot.jobs",         "jobs"         });
+        extension.add(Php::Ini{ "yothalot.host",         "localhost"                            });
+        extension.add(Php::Ini{ "yothalot.user",         "guest"                                });
+        extension.add(Php::Ini{ "yothalot.password",     "guest"                                });
+        extension.add(Php::Ini{ "yothalot.vhost",        "/"                                    });
+        extension.add(Php::Ini{ "yothalot.exchange",     ""                                     });
+        extension.add(Php::Ini{ "yothalot.mapreduce",    "mapreduce"                            });
+        extension.add(Php::Ini{ "yothalot.races",        "races"                                });
+        extension.add(Php::Ini{ "yothalot.jobs",         "jobs"                                 });
+        extension.add(Php::Ini{ "yothalot.cache",        "mongodb://localhost/yothalot/cache"   });
+        extension.add(Php::Ini{ "yothalot.ttl",          86400                                  });
+        extension.add(Php::Ini{ "yothalot.maxcache",     1048576                                });
 
         // add the ini property for the base directory
         extension.add(Php::Ini("yothalot.base-directory", ""));

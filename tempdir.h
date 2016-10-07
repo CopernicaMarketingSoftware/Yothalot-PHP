@@ -49,4 +49,10 @@ public:
      *  @return std::string
      */
     operator const std::string& () const { return _value; }
+    
+    /**
+     *  Cast to a const char *
+     *  @return const char *
+     */
+    operator const char * () const { return _value.data(); }
 };

@@ -14,6 +14,11 @@
 #pragma once
 
 /**
+ *  Dependencies
+ */
+#include "datasize.h"
+
+/**
  *  Class definitions
  */
 class Cache
@@ -37,7 +42,7 @@ public:
      */
     Cache() : 
         _connection(Php::ini_get("yothalot.cache")),
-        _target(&_connection, (int64_t)Php::ini_get("yothalot.maxcache"), (int64_t)Php::ini_get("yothalot.ttl")) {}
+        _target(&_connection, DataSize(Php::ini_get("yothalot.maxcache")), (int64_t)Php::ini_get("yothalot.ttl")) {}
     
     /**
      *  Destructor

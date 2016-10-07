@@ -357,7 +357,7 @@ extern "C" {
         extension.add(Php::Ini{ "yothalot.jobs",         "jobs"                                 });
         extension.add(Php::Ini{ "yothalot.cache",        "mongodb://localhost/yothalot/cache"   });
         extension.add(Php::Ini{ "yothalot.ttl",          86400                                  });
-        extension.add(Php::Ini{ "yothalot.maxcache",     1048576                                });
+        extension.add(Php::Ini{ "yothalot.maxcache",     "1MB"                                  });
 
         // add the ini property for the base directory
         extension.add(Php::Ini("yothalot.base-directory", ""));

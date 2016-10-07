@@ -7,7 +7,7 @@
  *  or unserialize() methods
  *
  *  @author Emiel Bruijntjes <emiel.bruijntjes@copernica.com>
- *  @copyright 2015 Copernica BV
+ *  @copyright 2015 - 2016 Copernica BV
  */
 
 /**
@@ -176,6 +176,7 @@ private:
 
     /**
      *  Get access to the output file
+     *  @param  flush       flush the output file / create a new one
      *  @return Yothalot::Output
      */
     Yothalot::Output *output(bool flush = false)
@@ -240,13 +241,13 @@ public:
     JobImpl(const JSON::Object &data) :
         _json(data.object("job")) // we don't create a connection here on purpose, as we just don't need one
     {
-        // does the input json contain a specific directory?
+        // does the input json contain a specific directory where we can dump temporary files?
         if (!_json.directory()) return;
 
         // input json contains a directory, construct this
         _directory.reset(new Directory(_json.directory()));
 
-		// @todo revive algorithm object
+        // @todo revive algorithm object, and use that for finalizing
     }
 
     /**

@@ -96,7 +96,7 @@ LINKER				=	g++
 
 COMPILER_FLAGS		=	-Wall -c -O2 -std=c++11 -MD -fpic -DVERSION="`./version.sh`" -I. -g
 LINKER_FLAGS		=	-shared
-LINKER_DEPENDENCIES	=	-lphpcpp -lyothalot -lamqpcpp
+LINKER_DEPENDENCIES	=	-lphpcpp -lyothalot -lamqpcpp -lcopernica_nosql
 
 #
 #	Command to remove files, copy files and create directories.

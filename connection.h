@@ -118,20 +118,17 @@ public:
         JSON::Object json(input, size);
 
         // and extract all the optional parameters
-        std::string host = (json.contains("host") ? json.c_str("host") : "localhost");
-        std::string user = (json.contains("user") ? json.c_str("user") : "guest");
-        std::string password = (json.contains("password") ? json.c_str("password") : "guest");
-        std::string vhost = (json.contains("vhost") ? json.c_str("vhost") : "/");
-        std::string exchange = (json.contains("exchange") ? json.c_str("exchange") : "");
-        std::string mapreduce = (json.contains("mapreduce") ? json.c_str("mapreduce") : "mapreduce");
-        std::string races = (json.contains("races") ? json.c_str("races") : "races");
-        std::string jobs = (json.contains("jobs") ? json.c_str("jobs") : "jobs");
+        std::string address = (json.contains("address") ? json.c_str("address") : Php::ini_get("yothalot.address"));
+        std::string exchange = (json.contains("exchange") ? json.c_str("exchange") : Php::ini_get("yothalot.exchange"));
+        std::string mapreduce = (json.contains("mapreduce") ? json.c_str("mapreduce") : Php::ini_get("yothalot.mapreduce"));
+        std::string races = (json.contains("races") ? json.c_str("races") : Php::ini_get("yothalot.jobs"));
+        std::string jobs = (json.contains("jobs") ? json.c_str("jobs") : Php::ini_get("yothalot.jobs"));
 
         // creating a connection could throw
         try
         {
             // create the actual connection
-            _core = std::make_shared<Core>(host, user, password, vhost, exchange, mapreduce, races, jobs);
+            _core = std::make_shared<Core>(address, exchange, mapreduce, races, jobs);
         }
         catch (const std::runtime_error &error)
         {

@@ -65,7 +65,7 @@ class WordCount implements Yothalot\MapReduce
      *  @param  mixed       Value that is being mapped (in this example: a path)
      *  @param  Reducer     Reducer object to which we may emit key/value pairs
      */
-    public function map($value, Yothalot\Reducer $reducer)
+    public function map($key, $value, Yothalot\Reducer $reducer)
     {
         // the value is a filename that we can open
         if (!is_resource($fp = fopen($value, "r"))) throw new Exception("Unable to open ".$value);

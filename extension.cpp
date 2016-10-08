@@ -347,10 +347,7 @@ extern "C" {
         extension.add<yothalotInit>("YothalotInit", { Php::ByVal("mode", Php::Type::String) });
 
         // add all the ini settings for the connection
-        extension.add(Php::Ini{ "yothalot.host",         "localhost"                            });
-        extension.add(Php::Ini{ "yothalot.user",         "guest"                                });
-        extension.add(Php::Ini{ "yothalot.password",     "guest"                                });
-        extension.add(Php::Ini{ "yothalot.vhost",        "/"                                    });
+        extension.add(Php::Ini{ "yothalot.address",      "amqp://guest:guest@localhost/"        });
         extension.add(Php::Ini{ "yothalot.exchange",     ""                                     });
         extension.add(Php::Ini{ "yothalot.mapreduce",    "mapreduce"                            });
         extension.add(Php::Ini{ "yothalot.races",        "races"                                });

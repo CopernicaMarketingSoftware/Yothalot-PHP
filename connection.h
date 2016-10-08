@@ -54,10 +54,7 @@ public:
         Php::Value param = params.size() == 0 ? Php::Object() : params[0];
 
         // and extract all the optional parameters
-        std::string host        = (param.contains("host")       ? param["host"]         : Php::ini_get("yothalot.host")        .stringValue());
-        std::string user        = (param.contains("user")       ? param["user"]         : Php::ini_get("yothalot.user")        .stringValue());
-        std::string password    = (param.contains("password")   ? param["password"]     : Php::ini_get("yothalot.password")    .stringValue());
-        std::string vhost       = (param.contains("vhost")      ? param["vhost"]        : Php::ini_get("yothalot.vhost")       .stringValue());
+        std::string address     = (param.contains("address")    ? param["address"]      : Php::ini_get("yothalot.address")     .stringValue());
         std::string exchange    = (param.contains("exchange")   ? param["exchange"]     : Php::ini_get("yothalot.exchange")    .stringValue());
         std::string mapreduce   = (param.contains("mapreduce")  ? param["mapreduce"]    : Php::ini_get("yothalot.mapreduce")   .stringValue());
         std::string races       = (param.contains("races")      ? param["races"]        : Php::ini_get("yothalot.races")       .stringValue());
@@ -67,7 +64,7 @@ public:
         try
         {
             // create the actual connection
-            _core= std::make_shared<Core>(host, user, password, vhost, exchange, mapreduce, races, jobs);
+            _core= std::make_shared<Core>(address, exchange, mapreduce, races, jobs);
         }
         catch (const std::runtime_error &error)
         {

@@ -109,7 +109,7 @@ private:
         if (_connection) return true;
 
         // the connection address
-        AMQP::Address address(_json.c_str("host"), 5672, ::AMQP::Login(_json.c_str("user"), _json.c_str("password")), _json.c_str("vhost"));
+        AMQP::Address address(_json.c_str("address"));
 
         // create the connection (it will the stored as a member in the onConnected() method)
         auto *connection = new AMQP::TcpConnection(this, address);
@@ -140,10 +140,7 @@ public:
      *
      *  Watch out: throws an exception when connection could not be established
      *
-     *  @param  host
-     *  @param  user
-     *  @param  password
-     *  @param  vhost
+     *  @param  address
      *  @param  exchange
      *  @param  mapreduce
      *  @param  races
@@ -153,20 +150,17 @@ public:
      * 
      *  @todo why std::string?
      */
-    Core(const std::string &host, const std::string &user, const std::string &password, const std::string &vhost, const std::string &exchange, const std::string &mapreduce, const std::string &races, const std::string &jobs)
+    Core(const std::string &address, const std::string &exchange, const std::string &mapreduce, const std::string &races, const std::string &jobs)
     {
         // store all properties in the JSON
-        _json.set("host", host);
-        _json.set("user", user);
-        _json.set("password", password);
-        _json.set("vhost", vhost);
+        _json.set("address", address);
         _json.set("exchange", exchange);
         _json.set("mapreduce", mapreduce);
         _json.set("races", races);
         _json.set("jobs", jobs);
         
         // construct a connection
-        auto *connection = new AMQP::TcpConnection(this, AMQP::Address(host, 5672, ::AMQP::Login(user, password), vhost));
+        auto *connection = new AMQP::TcpConnection(this, AMQP::Address(address));
         
         // keep running the event loop, until the connection is valid
         while (!_connection && _error.empty())

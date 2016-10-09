@@ -47,7 +47,7 @@ private:
      */
     enum {
         state_initialize,       // job is being initialized, it is still possible to change settings and add input
-        state_serialized,       // job has been serialized, so it could be active on multiple servers, the json can no longer be altered
+        state_frozen,           // job has been frozen because it was (un)serialized, the input data in the json can no longer be altered
         state_running,          // job is busy running
         state_finished,         // job finished running
     } _state;
@@ -118,7 +118,7 @@ private:
     bool isTunable() const
     {
         // this is possible
-        return _state == state_initialize || _state == state_serialized;
+        return _state == state_initialize || _state == state_frozen;
     }
     
     /**
@@ -147,39 +147,31 @@ private:
         // leap out if there is no directory with files
         if (directory == nullptr) return;
         
-        // prevent exceptions (the Directory object might throw)
-        try
-        {
-            // hey. the finalizer did not yet run on the yothalot cluster, that means that we
-            // have to do the finalizing in this process
-            Wrapper mapreduce(_json.finalizer());
+        // hey. the finalizer did not yet run on the yothalot cluster, that means that we
+        // have to do the finalizing in this process
+        Wrapper mapreduce(_json.finalizer());
+        
+        // create the write task
+        Yothalot::WriteTask task(base(), &mapreduce);
+        
+        // construct the full directory name
+        Directory dir(directory);
+        
+        // traverse over the dir
+        dir.traverse([&task, &dir](const char *name) {
             
-            // create the write task
-            Yothalot::WriteTask task(base(), &mapreduce);
+            // construct absolute path name of the file
+            std::string fullname(dir.full());
             
-            // construct the full directory name
-            Directory dir(directory);
+            // add directory name
+            fullname.append("/").append(name);
             
-            // traverse over the dir
-            dir.traverse([&task, &dir](const char *name) {
-                
-                // construct absolute path name of the file
-                std::string fullname(dir.full());
-                
-                // add directory name
-                fullname.append("/").append(name);
-                
-                // pass to the task
-                task.process(fullname.data(), 0, INT_MAX, 0, INT_MAX);
-            });
-            
-            // remove the directory
-            dir.remove();
-        }
-        catch (...)
-        {
-            // the result failed
-        }
+            // pass to the task
+            task.process(fullname.data(), 0, INT_MAX, 0, INT_MAX);
+        });
+        
+        // remove the directory
+        dir.remove();
     }
     
     /**
@@ -224,7 +216,7 @@ private:
             // on the size of the file it is going to be a disk based or nosql based file)
             return install(new Yothalot::Output(&_target, _splitsize));
         }
-        else if (_state == state_serialized)
+        else if (_state == state_frozen)
         {
             // the job object has already been serialized, which means that multiple
             // instances have access to the data, and that we can no longer update
@@ -309,10 +301,12 @@ public:
      */
     JobImpl(const JSON::Object &data) :
         _json(data.object("job")),  // we don't create a _core connection here on purpose, as we just don't need one
-        _state(state_serialized),
+        _state(state_frozen),
         _directory(_json.directory()),
         _target(_directory.full())
     {
+        // @todo _json.directory() does it return an editable, removable, directory?
+        
         // @todo revive algorithm object, and use that for finalizing
     }
 
@@ -375,8 +369,6 @@ public:
      */
     const char *directory() const
     {
-        // @todo who uses this method? does it respect the fact that the directory may not exist
-        
         // expose the path
         return _directory.relative();
     }
@@ -558,6 +550,20 @@ public:
 
         // done
         return true;
+    }
+    
+    /**
+     *  Freeze the object, from now on we no longer allow modifications to the
+     *  json data, because the job has been serialized, and could be accessed from
+     *  multiple processes
+     */
+    void freeze()
+    {
+        // synchronize output file
+        sync();
+        
+        // update the state
+        _state = state_frozen;
     }
 
     /**

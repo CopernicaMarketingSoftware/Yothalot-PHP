@@ -26,24 +26,20 @@ class Serialized : public JSON::Object
 public:
     /**
      *  Constructor to serialize
-     *
-     *  Watch out! Object throws an error when the job is not serializable (this
-     *  happens when it has no directory on GlusterFS)
-     *
      *  @param  impl        Job implementation object that is going to be serialized
-     *
-     *  @throws std::runtime_error
+     * 
+     *  @todo does not throw an error, check if the callers are not inside a try-catch block
      */
     Serialized(JobImpl *impl)
     {
-        // does this job have a directory? otherwise serializing does not work
-        if (!impl->directory()) throw std::runtime_error("Only jobs that are started with access to a GlusterFS mount point can be serialized");
-
         // one member holds all job data
         set("job", impl->json());
 
         // and the other member holds all connection data
         set("connection", impl->core()->json());
+        
+        // freeze the job, from now on no more data may be added
+        impl->freeze();
     }
 
     /**

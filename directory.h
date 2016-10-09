@@ -45,11 +45,6 @@ private:
 public:
     /**
      *  Constructor, will create a temporary directory in the gluster mount point/tmp
-     * 
-     *  @todo check if we explicitly call "create()" where we use the directory
-     *  @todo check if we catch exceptions where we use it (that is not necessary)
-     * 
-     *  @todo after serializing, freeze the jobimpl object
      */
     Directory() : _name(base(), std::string("tmp/") + (std::string)Yothalot::UniqueName())
     {

@@ -22,6 +22,7 @@
 #include "data.h"
 #include "tempqueue.h"
 #include "wrapper.h"
+#include "target.h"
 
 /**
  *  Class definition
@@ -42,28 +43,14 @@ private:
     std::shared_ptr<Core> _core;
 
     /**
-     *  Did we create any input yet?
-     *  @var bool
+     *  State of the job
      */
-    bool _input = false;
-
-    /**
-     *  Did we start yet?
-     *  @var bool
-     */
-    bool _started = false;
-
-    /**
-     *  Are we done yet?
-     *  @var bool
-     */
-    bool _done = false;
-
-    /**
-     *  Did an error occur?
-     *  @var bool
-     */
-    bool _error = false;
+    enum {
+        state_initialize,       // job is being initialized, it is still possible to change settings and add input
+        state_serialized,       // job has been serialized, so it could be active on multiple servers, the json can no longer be altered
+        state_running,          // job is busy running
+        state_finished,         // job finished running
+    } _state;
 
     /**
      *  The temporary queue the result will be published to
@@ -75,13 +62,19 @@ private:
      *  The temporary directory holding all input data
      *  @var Directory
      */
-    std::unique_ptr<Directory> _directory;
+    Directory _directory;
 
     /**
-     *  The output file to which records are written
+     *  Yothalot target object
+     *  @var Target
+     */
+    Target _target;
+
+    /**
+     *  The file to which records are written.
      *  @var Yothalot::Output
      */
-    std::unique_ptr<Yothalot::Output> _output;
+    std::unique_ptr<Yothalot::Output> _datafile;
 
     /**
      *  Result data sent back
@@ -97,6 +90,38 @@ private:
 
     
     /**
+     *  Was the job an error
+     *  @return bool
+     */
+    bool isError() const
+    {
+        // job must be finished
+        if (_state != state_finished) return false;
+        
+        // if we did not get an object back, there must be something wrong
+        if (_result.size() == 0) return true;
+
+        // in case case of a task we may have the stderr in the main json right away
+        if (isTask() && _result.contains("stderr")) return true;
+
+        // if we don't have an error we return true
+        if (_result.contains("error")) return true;
+        
+        // this was not an error
+        return false;
+    }
+    
+    /**
+     *  Is the object still tunable?
+     *  @return bool
+     */
+    bool isTunable() const
+    {
+        // this is possible
+        return _state == state_initialize || _state == state_serialized;
+    }
+    
+    /**
      *  Called when result comes in
      *  @param  queue
      *  @param  buffer
@@ -104,20 +129,17 @@ private:
      */
     virtual void onReceived(TempQueue *queue, const char *buffer, size_t size) override
     {
+        // change state
+        _state = state_finished;
+        
         // assign to the result variable
         _result = JSON::Object(buffer, size);
 
-        // we're done
-        _done = true;
-
-        // in case case of a task we may have the stderr in the main json right away
-        if (isTask() && _result.contains("stderr")) _error = true;
-
-        // if we don't have an error we return true
-        else if (_result.contains("error")) _error = true;
+        // nothing left to do on error
+        if (isError()) return;
         
-        // nothing left to be done on error, or when this is not a map-reduce job
-        if (_error || !isMapReduce() || _result.object("finalizers").integer("processes") > 0) return;
+        // nothing left to be done when this is not a map-reduce job
+        if (!isMapReduce() || _result.object("finalizers").integer("processes") > 0) return;
         
         // name of the directory that contains the result files
         const char *directory = _result.c_str("directory");
@@ -136,7 +158,7 @@ private:
             Yothalot::WriteTask task(base(), &mapreduce);
             
             // construct the full directory name
-            Directory dir(_result.c_str("directory"));
+            Directory dir(directory);
             
             // traverse over the dir
             dir.traverse([&task, &dir](const char *name) {
@@ -167,86 +189,130 @@ private:
      */
     virtual void onError(TempQueue *queue, const char *message) override
     {
-        // we're done
-        _done = true;
-
         // remember that we're in an error state
-        _error = true;
+        _state = state_finished;
+    }
+    
+    /**
+     *  Install a new output file
+     *  @param  file
+     *  @return Yothalot::Output
+     */
+    Yothalot::Output *install(Yothalot::Output *file)
+    {
+        // install in the unique-ptr
+        _datafile.reset(file);
+        
+        // done
+        return file;
     }
 
     /**
-     *  Get access to the output file
-     *  @param  flush       flush the output file / create a new one
+     *  Get access to the input file
      *  @return Yothalot::Output
      */
-    Yothalot::Output *output(bool flush = false)
+    Yothalot::Output *datafile()
     {
         // do we already have such a file?
-        if (_output && !flush) return _output.get();
+        if (_datafile != nullptr) return _datafile.get();
+        
+        // if we're still initializing, and this is the only object with access to the
+        // json, we can still construct datafiles that are either stored in nosql or on disk
+        if (_state == state_initialize)
+        {
+            // construct a new output file, using the target settings (meaning that based
+            // on the size of the file it is going to be a disk based or nosql based file)
+            return install(new Yothalot::Output(&_target, _splitsize));
+        }
+        else if (_state == state_serialized)
+        {
+            // the job object has already been serialized, which means that multiple
+            // instances have access to the data, and that we can no longer update
+            // the json (because we dont know which script is leading), we must use
+            // a file-based job object, make sure that the directory exists
+            if (!_directory.create()) return nullptr;
+            
+            // create new file-based output object
+            // @todo remove all calls to uniqid() from other files
+            return install(new Yothalot::Output(std::string(_directory.full()) + "/" + (std::string)Yothalot::UniqueName(), _splitsize, true));
+        }
+        else
+        {
+            // no file is available
+            return nullptr;
+        }
+    }
 
-        // file is not yet opened, but we need a directory on glusterfs for that
-        if (!_directory) return nullptr;
+    /**
+     *  Synchronize the datafile, so that the json is up-to-date
+     *  @return bool
+     */
+    bool sync()
+    {
+        // if there is no data file, there is nothing to flush
+        if (_datafile == nullptr) return false;
+        
+        // we have a data file, flush it
+        _datafile->flush();
+        
+        // the datafile, is it stored in nosql or in a regular file?
+        if (strncasecmp(_datafile->name().data(), "cache://", 8) != 0) return true;
 
-        // construct a new output file
-        _output.reset(new Yothalot::Output(std::string(_directory->full()) + "/" + Php::call("uniqid").stringValue(), _splitsize));
-
-        // we have no created an input file
-        _input = true;
+        // the datafile is saved as an object in nosql. However, we are 
+        // only going to pass a directory to the yothalot master process,
+        // so we have to include this nosql address explicitly in the 
+        // json input. This can be done as a "cache://" filename
+        // @todo do this also when the job is started
+        // @todo do this also when the job is serialized
+        _json.file(_datafile->name().data(), 0, _datafile->size(), true, nullptr);
+        
+        // from this moment on, we can no longer use the nosql based data file
+        _datafile = nullptr;
 
         // done
-        return _output.get();
+        return true;
     }
+
 
 public:
     /**
      *  Constructor for constructing a brand new job
      *  @param  core        The core connection object
      *  @param  algo        User supplied algorithm object
+     *  @throws std::runtime_error
+     * 
+     *  @todo can this object indeed throw?
+     *  @todo do we catch this throw?
      */
     JobImpl(const std::shared_ptr<Core> &core, const Php::Value &algo) :
         _json(algo),
-        _core(core)
+        _core(core),
+        _state(state_initialize),
+        _target(core->nosql(), _directory.full())
     {
-        // try to allocate a directory
-        try
-        {
-            // create the directory
-            _directory.reset(new Directory());
+        // the directory exists, set this in the json, we want the cleanup and no server
+        if (_json.isMapReduce()) _json.directory(_directory.relative(), true, nullptr);
 
-            // the directory exists, set this in the json, we want the cleanup and no server
-            if (_json.isMapReduce()) _json.directory(_directory->relative(), true, nullptr);
-
-            // either a race job or an old mapreduce job; add the directory directly
-            else _json.directory(_directory->relative());
-        }
-        catch (...)
-        {
-            // failed to allocate the directory, we do not have to
-            // deal with this, because the input object already held
-            // an array of data
-        }
+        // this is a race job, add the directory directly
+        // @todo why are race jobs different?
+        else _json.directory(_directory.relative());
     }
 
     /**
      *  Constructor for an unserialized job
-     *
-     *  This throws an exception if the directory could not be read (in
-     *  which case it is pointless to unserialize, because then the
-     *  job would not be moveable to other servers anyway)
-     *
+     *  Throws an error if the json did not contain a directory
      *  @param  data        A JSON object holding unserialized data
-     *
      *  @throws std::runtime_error
+     * 
+     *  @todo is this error indeed throws
+     *  @todo catch this error
      */
     JobImpl(const JSON::Object &data) :
-        _json(data.object("job")) // we don't create a connection here on purpose, as we just don't need one
+        _json(data.object("job")),  // we don't create a _core connection here on purpose, as we just don't need one
+        _state(state_serialized),
+        _directory(_json.directory()),
+        _target(_directory.full())
     {
-        // does the input json contain a specific directory where we can dump temporary files?
-        if (!_json.directory()) return;
-
-        // input json contains a directory, construct this
-        _directory.reset(new Directory(_json.directory()));
-
         // @todo revive algorithm object, and use that for finalizing
     }
 
@@ -283,8 +349,18 @@ public:
      */
     bool splitsize(size_t splitsize)
     {
-        // not possible if we have already generated input
-        if (_input) return false;
+        // this is only possible if we have no input files whatsoever
+        if (_datafile) return false;
+        
+        // @todo check if there is no input set in the json
+        // @todo check if there are no other input files in the directory
+        // @todo check if we can initialize _splitsize based on existing input
+        
+        
+        // not possible if we have already generated a datafile object, or if the 
+        // job was already started
+        // @todo 
+        //if (_output || _state != state_initialize) return false;
 
         // update the split size
         _splitsize = splitsize;
@@ -299,8 +375,10 @@ public:
      */
     const char *directory() const
     {
-        // check if dir is set, then return the relative path
-        return _directory ? _directory->relative() : nullptr;
+        // @todo who uses this method? does it respect the fact that the directory may not exist
+        
+        // expose the path
+        return _directory.relative();
     }
 
     /**
@@ -310,8 +388,8 @@ public:
      */
     bool maxprocesses(int value)
     {
-        // not possible if job was already started
-        if (_started) return false;
+        // only possible if this is the original constructed job object
+        if (_state != state_initialize) return false;
 
         // set in the JSON
         _json.maxprocesses(value);
@@ -327,8 +405,8 @@ public:
      */
     bool maxmappers(int value)
     {
-        // not possible if job was already started
-        if (_started) return false;
+        // only possible if this is the original constructed job object
+        if (_state != state_initialize) return false;
 
         // set in the JSON
         _json.maxmappers(value);
@@ -344,8 +422,8 @@ public:
      */
     bool maxreducers(int value)
     {
-        // not possible if job sas already started
-        if (_started) return false;
+        // only possible if this is the original constructed job object
+        if (_state != state_initialize) return false;
 
         // set in the JSON
         _json.maxreducers(value);
@@ -361,8 +439,8 @@ public:
      */
     bool maxfinalizers(int value)
     {
-        // not possible if job has already started
-        if (_started) return false;
+        // only possible if this is the original constructed job object
+        if (_state != state_initialize) return false;
 
         // set in the JSON
         _json.maxfinalizers(value);
@@ -378,8 +456,8 @@ public:
      */
     bool modulo(int value)
     {
-        // not possible if job has already started
-        if (_started) return false;
+        // only possible if this is the original constructed job object
+        if (_state != state_initialize) return false;
 
         // set in the json
         _json.modulo(value);
@@ -395,8 +473,8 @@ public:
      */
     bool maxfiles(int mapper, int reducer, int finalizer)
     {
-        // not possible if job has already started
-        if (_started) return false;
+        // not possible if job is no longer tunable
+        if (!isTunable()) return false;
 
         // set in the json
         _json.maxfiles(mapper, reducer, finalizer);
@@ -412,8 +490,8 @@ public:
      */
     bool maxbytes(int64_t mapper, int64_t reducer, int64_t finalizer)
     {
-        // not possible if job has already started
-        if (_started) return false;
+        // not possible if job is no longer tunable
+        if (!isTunable()) return false;
 
         // the byte limit for each mapper *must* be a multiple of the
         // split size of the generated input files, because they are
@@ -437,8 +515,8 @@ public:
      */
     bool maxrecords(int64_t mapper)
     {
-        // not possible if job has already started
-        if (_started) return false;
+        // not possible if job is no longer tunable
+        if (!isTunable()) return false;
 
         // set in the json
         _json.maxrecords(mapper);
@@ -454,8 +532,8 @@ public:
      */
     bool local(bool value)
     {
-        // not possible if job has already started
-        if (_started) return false;
+        // not possible if job is no longer tunable
+        if (!isTunable()) return false;
 
         // set in the json
         _json.local(value);
@@ -465,16 +543,18 @@ public:
     }
 
     /**
-     *  Flush the output file.
+     *  Flush the output file, this is also used to indicate the all the
+     *  previous emitted key/value pairs or input data should be passed to
+     *  a different process (so should be stored in a different file)
      *  @return bool
      */
     bool flush()
     {
-        // not possible if already started
-        if (_started) return false;
-
-        // simply get a new output
-        output(true);
+        // synchronize the output file
+        if (!sync()) return false;
+        
+        // forget about the data file, even if it was a regular file
+        _datafile = nullptr;
 
         // done
         return true;
@@ -487,14 +567,25 @@ public:
      */
     bool add(const std::string &data)
     {
-        // impossible if already started and in the newer versions, this should be replaced with an empty key for example
-        if (_started) return false;
-
-        // the output file to which we're going to write
-        auto *out = output();
-
-        // do we have such a file?
-        if (out)
+        // impossible if already started
+        if (_state == state_running || _state == state_finished) return false;
+        
+        // do we have a datafile in which we can store this data?
+        auto *file = datafile();
+        
+        // do we have such a datafile?
+        if (file == nullptr)
+        {
+            // no datafile is available, so we're going to store the data in the json,
+            // which is only possible to objects that were original created (and not 
+            // unserialized), because unserialized object may share the same json and
+            // can not modify it
+            if (_state != state_initialize) return false;
+            
+            // add data to json
+            _json.add(data);
+        }
+        else
         {
             // write a record to the file (record ID 0 means that no server
             // or file is available)
@@ -504,12 +595,7 @@ public:
             record.add(data);
 
             // put this in the output file
-            out->add(record);
-        }
-        else
-        {
-            // add data to the json because no directory is available
-            _json.add(data);
+            file->add(record);
         }
 
         // done
@@ -523,45 +609,30 @@ public:
      */
     bool add(const Yothalot::Key &key, const Yothalot::Value &value, const char *server)
     {
-        // impossible if already started (is it?)
-        if (_started || !isMapReduce()) return false;
+        // impossible if already started
+        if (_state == state_running || _state == state_finished) return false;
 
-        // get the output file we're going to write
-        auto out = output();
+        // adding key/value pairs only makes sense for mapreduce jobs
+        if (!isMapReduce()) return false;
 
-        // if we have an output, write the record in the output file
-        if (out) out->add(Yothalot::Record(Yothalot::KeyValue(key, value)));
-
-        // otherwise we add it to the json directly (will be in separate files)
-        else _json.kv(key, value, server);
-
-        // we've successfully added it
-        return true;
-    }
-
-    /**
-     *  This will add all data to different files
-     *  @param  key
-     *  @param  value
-     */
-    bool map(const Yothalot::Key &key, const Yothalot::Value &value, const char *server)
-    {
-        // impossible if already started (is it?) and impossible in older versions (we cannot mishmash the files because
-        // they use different protocols. stick to one)
-        if (_started || !isMapReduce()) return false;
-
-        // have we been unserialized? in that case adding data to the json
-        // is likely not going to work, since the job will be started from
-        // somewhere else, that has a different copy of the json by itself
-        if (!_core)
+        // do we have a datafile in which we can store this data?
+        auto *file = datafile();
+        
+        // do we have such a datafile?
+        if (file == nullptr)
         {
-            // add the data to an output file
-            output()->add(Yothalot::Record{ Yothalot::KeyValue{ key, value }});
+            // we can not add data to a shared file, so we must add it to the json,
+            // which is not possible if there are multiple jobs around that all refer
+            // to the same json
+            if (_state != state_initialize) return false;
+            
+            // add to the json
+            _json.kv(key, value, server);
         }
         else
         {
-            // only add it to the json, faster for distinct files
-            _json.kv(key, value, server);
+            // add to the file
+            file->add(Yothalot::Record(Yothalot::KeyValue(key, value)));
         }
 
         // we've successfully added it
@@ -578,8 +649,8 @@ public:
      */
     bool file(const char *filename, size_t start, size_t size, bool remove, const char *server)
     {
-        // cannot add the file if already started
-        if (_started) return false;
+        // manipulating json only works for the original constructed object
+        if (_state != state_initialize) return false;
 
         // in this case, we have to use the json to transfer the data
         _json.file(filename, start, size, remove, server);
@@ -596,8 +667,8 @@ public:
      */
     bool directory(const char *dirname, bool remove, const char *server)
     {
-        // cannot add the file if already started
-        if (_started) return false;
+        // manipulating json only works for the original constructed object
+        if (_state != state_initialize) return false;
 
         // in this case, we have to use the json to transfer the data
         _json.directory(dirname, remove, server);
@@ -605,7 +676,6 @@ public:
         // we succeeded
         return true;
     }
-
 
     /**
      *  Start the job - was the job started?
@@ -615,29 +685,37 @@ public:
     bool start()
     {
         // if we already started or are done we bail out
-        if (_started || _done) return true;
+        if (_state == state_running || _state == state_finished) return true;
 
         // creating the temp queue might end up in an exception if no RabbitMQ connection is available
         try
         {
             // we need a temporary queue, because we might need to wait for the answer
+            // @todo we may have to re-initialize the core object
             _tempqueue.reset(new TempQueue(this, _core));
-
-            // if we have an output object, we remove it to enforce that all data is flushed
-            _output.reset();
 
             // store the name of the temp queue in the JSON
             _json.tempqueue(_tempqueue->name());
 
-            // now we can publish the job JSON data to the RabbitMQ server
-            if (_json.publish(_core.get())) return _started = true;
-            
-            // destruct the tempqueue
-            _tempqueue = nullptr;
+            // now we must synchronize the json with the datafile that we use (if this is a nosql
+            // based datafile, the json has to be updated), and send the job data to RabbitMQ
+            if (sync() && _json.publish(_core.get())) 
+            {
+                // the job has been started
+                _state = state_running;
+                
+                // done
+                return true;
+            }
+            else
+            {
+                // destruct the tempqueue
+                _tempqueue = nullptr;
 
-            // the weird situation is that we can not connect to RabbitMQ...
-            // (really weird because we did manage to create the temp queue...)
-            return false;
+                // the weird situation is that we can not connect to RabbitMQ...
+                // (really weird because we did manage to create the temp queue...)
+                return false;
+            }
         }
         catch (...)
         {
@@ -653,7 +731,8 @@ public:
      */
     bool ready() const
     {
-        return _done;
+        // check state
+        return _state == state_finished;
     }
 
     /**
@@ -663,7 +742,7 @@ public:
     bool wait()
     {
         // if the job is already done
-        if (_done) return !_error;
+        if (_state == state_finished) return !isError();
 
         // make sure the job is started
         if (!start()) return false;
@@ -675,7 +754,7 @@ public:
         _tempqueue->wait();
 
         // by now we know that we're done
-        return !_error;
+        return !isError();
     }
 
     /**
@@ -695,19 +774,24 @@ public:
     bool detach()
     {
         // if we already started or are done we bail out
-        if (_done) return false;
+        if (_state == state_finished) return false;
 
         // do we have a temp queue? if so we should get rid of it
         if (_tempqueue) _tempqueue = nullptr;
 
         // if the job was already started, nothing is left to do
-        if (_started) return true;
+        if (_state == state_running) return true;
 
         // if the job was not yet started, we should do that now
+        // @todo we may have to recreate the connection object
+        // @todo synchronize data?
         if (!_json.publish(_core.get())) return false;
 
         // mark job as started
-        return _started = true;
+        _state = state_running;
+        
+        // done
+        return true;
     }
 
     /**
@@ -716,6 +800,7 @@ public:
      */
     const JSON::Object &json() const
     {
+        // expose json
         return _json;
     }
 
@@ -725,6 +810,7 @@ public:
      */
     const std::shared_ptr<Core> &core() const
     {
+        // expose member
         return _core;
     }
 };

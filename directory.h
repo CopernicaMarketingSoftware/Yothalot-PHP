@@ -42,14 +42,17 @@ private:
      */
     mutable struct dirent *_entry = nullptr;
 
+public:
     /**
-     *  Helper function to initialize the object
+     *  Constructor, will create a temporary directory in the gluster mount point/tmp
+     * 
+     *  @todo check if we explicitly call "create()" where we use the directory
+     *  @todo check if we catch exceptions where we use it (that is not necessary)
+     * 
+     *  @todo after serializing, freeze the jobimpl object
      */
-    void initialize() const
+    Directory() : _name(base(), std::string("tmp/") + (std::string)Yothalot::UniqueName())
     {
-        // leap out if already initialized
-        if (_entry != nullptr) return;
-        
         // Calculate buffer size (based on advise in man page)
         long name_max = pathconf(_name.full(), _PC_NAME_MAX);
 
@@ -61,29 +64,6 @@ private:
 
         // Allocate the buffer
         _entry = static_cast<struct dirent*>(malloc(len));
-    }
-
-public:
-    /**
-     *  Constructor, will create a temporary directory in the gluster mount point/tmp
-     */
-    Directory() : _name(base(), "tmp/" + Php::call("uniqid", getpid()).stringValue())
-    {
-        // try to construct the directory
-        if (mkdir(_name.full(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH) == 0) return;
-
-        // directory could not be created, make sure base exists
-        Yothalot::Fullname basedir(base(), "tmp");
-
-        // create the base directory (we don't check the result, it can also fail
-        // because it already exists, and we do not want to check all such details)
-        mkdir(basedir.full(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
-
-        // retry to create the actual directory
-        if (mkdir(_name.full(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH) == 0) return;
-
-        // failed to create temp directory twice: it is not our day
-        throw std::runtime_error("failed to create temporary directory");
     }
 
     /**
@@ -99,6 +79,49 @@ public:
     {
         // clean up entry resource
         free(_entry);
+    }
+    
+    /**
+     *  Cast to boolean: does the directory exist?
+     *  @return bool
+     */
+    operator bool () const { return exists(); }
+    bool operator! () const { return !exists(); }
+    
+    /**
+     *  Does the directory exist?
+     *  @return bool
+     */
+    bool exists() const
+    {
+        // file properties
+        struct stat props;
+        
+        // read in properties
+        if (stat(_name.full(), &props) != 0) return false;
+        
+        // must be a dir
+        return S_ISDIR(props.st_mode);
+    }
+
+    /**
+     *  Create the directory
+     *  @return bool
+     */
+    bool create()
+    {
+        // try to construct the directory
+        if (mkdir(_name.full(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH) == 0) return true;
+
+        // directory could not be created, make sure base exists
+        Yothalot::Fullname basedir(base(), "tmp");
+
+        // create the base directory (we don't check the result, it can also fail
+        // because it already exists, and we do not want to check all such details)
+        mkdir(basedir.full(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
+
+        // retry to create the actual directory
+        return mkdir(_name.full(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH) == 0;
     }
 
     /**
@@ -125,8 +148,9 @@ public:
      *  passing the raw entry information
      *  it resets at the end so it can be called again.
      *  @param  callback
+     *  @return bool
      */
-    void traverse(const std::function<void(struct dirent *entry)> &callback) const
+    bool traverse(const std::function<void(struct dirent *entry)> &callback) const
     {
         // temporary result variable
         struct dirent *result = nullptr; 
@@ -135,11 +159,8 @@ public:
         auto *dirp = opendir(_name);
 
         // leap out if directory could not be opened
-        if (!dirp) return;
+        if (!dirp) return false;
         
-        // the _entry member must be initialized
-        initialize();
-
         // iterate over the files and stop if all files are consumed
         // readdir_r will return a !0 if there occurs an error
         while(!readdir_r(dirp, _entry, &result))
@@ -156,6 +177,9 @@ public:
 
         // close dir
         closedir(dirp);
+        
+        // done
+        return true;
     }
 
     /**
@@ -163,19 +187,21 @@ public:
      *  passing the entry name as a string
      *  it resets at the end so it can be called again.
      *  @param  callback
+     *  @return bool
      */
-    void traverse(const std::function<void(const char *name)> &callback) const
+    bool traverse(const std::function<void(const char *name)> &callback) const
     {
         // call the other traverse implementation
-        traverse([callback](struct dirent *entry) {
+        return traverse([callback](struct dirent *entry) {
             callback(entry->d_name);
         });
     }
     
     /**
      *  Remove the directory (and all files in it)
+     *  @return true
      */
-    void remove()
+    bool remove()
     {
         // traverse over the files
         traverse([this](const char *name) {
@@ -191,7 +217,7 @@ public:
         });
         
         // remove the directory
-        rmdir(full());
+        return rmdir(full()) == 0;
     }
 };
 

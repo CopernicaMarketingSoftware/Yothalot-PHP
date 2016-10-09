@@ -43,15 +43,21 @@ private:
 
     /**
      *  The underlying TCP connection
-     *  @var  AMQP::TcpConnection
+     *  @var AMQP::TcpConnection
      */
-    std::unique_ptr<AMQP::TcpConnection> _connection;
+    std::unique_ptr<AMQP::TcpConnection> _rabbit;
 
     /**
      *  The error that was discovered
      *  @var std::string
      */
     std::string _error;
+    
+    /**
+     *  The nosql connection
+     *  @var NoSql::Connection
+     */
+    std::unique_ptr<Copernica::NoSql::Connection> _nosql;
 
     /**
      *  Called when connection is in error state
@@ -64,7 +70,7 @@ private:
         _error.assign(message);
 
         // reset the connection
-        _connection = nullptr;
+        _rabbit = nullptr;
     }
 
     /**
@@ -74,7 +80,7 @@ private:
     virtual void onConnected(AMQP::TcpConnection *connection) override
     {
         // store the connection
-        _connection.reset(connection);
+        _rabbit.reset(connection);
     }
 
     /**
@@ -84,7 +90,7 @@ private:
     virtual void onClosed(AMQP::TcpConnection *connection) override
     {
         // reset connection
-        _connection = nullptr;
+        _rabbit = nullptr;
     }
 
     /**
@@ -106,7 +112,7 @@ private:
     bool connect()
     {
         // not necessary if already connected
-        if (_connection) return true;
+        if (_rabbit) return true;
 
         // the connection address
         AMQP::Address address(_json.c_str("address"));
@@ -115,7 +121,7 @@ private:
         auto *connection = new AMQP::TcpConnection(this, address);
 
         // keep running the event loop, until the connection is valid
-        while (!_connection && _error.empty())
+        while (!_rabbit && _error.empty())
         {
             // construct the event loop
             Loop loop(_descriptors);
@@ -125,7 +131,7 @@ private:
         }
         
         // was the connection stored as member?
-        if (_connection) return true;
+        if (_rabbit) return true;
 
         // report error to PHP space
         if (!_error.empty()) Php::warning << _error << std::endl;
@@ -163,7 +169,7 @@ public:
         auto *connection = new AMQP::TcpConnection(this, AMQP::Address(address));
         
         // keep running the event loop, until the connection is valid
-        while (!_connection && _error.empty())
+        while (!_rabbit && _error.empty())
         {
             // construct the event loop
             Loop loop(_descriptors);
@@ -173,7 +179,7 @@ public:
         }
         
         // was the connection stored as member?
-        if (_connection) return;
+        if (_rabbit) return;
         
         // we apparently have a failure
         delete connection;
@@ -187,7 +193,7 @@ public:
      *  @param  data
      */
     Core(const JSON::Object &object) :
-        _json(object), _connection(nullptr) {}
+        _json(object), _rabbit(nullptr) {}
 
     /**
      *  Destructor
@@ -195,16 +201,16 @@ public:
     virtual ~Core()
     {
         // nothing to do for us when we're not connected
-        if (!_connection) return;
+        if (!_rabbit) return;
 
         // close the connection
-        _connection->close();
+        _rabbit->close();
 
         // create the event loop
         Loop loop(_descriptors);
 
         // run the loop (it only contains the connection, so it runs until the connection is closed)
-        loop.run(_connection.get());
+        loop.run(_rabbit.get());
     };
 
     /**
@@ -262,7 +268,7 @@ public:
         if (!connect()) return false;
 
         // create temporary channel, so that possible errors do not affect the connection
-        AMQP::TcpChannel channel(_connection.get());
+        AMQP::TcpChannel channel(_rabbit.get());
 
         // publish the json
         channel.publish(_json.c_str("exchange"), queue, json.toString());
@@ -278,7 +284,7 @@ public:
     void flush()
     {
         // flush is pointless without a connection
-        if (!_connection) return;
+        if (!_rabbit) return;
 
         // create an event loop with just these file descriptors
         Loop loop(_descriptors);
@@ -287,12 +293,13 @@ public:
         // we're working in such a way that all the channels drop away the second
         // they're no longer needed, meaning that we've pushed/retrieved everything
         // from rabbitmq the second we have no channels left
-        while (_connection->channels() > 0) loop.step(_connection.get());
+        while (_rabbit->channels() > 0) loop.step(_rabbit.get());
     }
 
     /**
      *  Expose the connection 
      *  Returns nullptr on error
+     *  @return AMQP::TcpConnection
      */
     AMQP::TcpConnection *connection()
     {
@@ -300,7 +307,17 @@ public:
         if (!connect()) return nullptr;
 
         // retrieve the connection
-        return _connection.get();
+        return _rabbit.get();
+    }
+    
+    /**
+     *  Expose the nosql cache
+     *  @return Copernica::NoSql::Connection
+     */
+    Copernica::NoSql::Connection *nosql()
+    {
+        // @todo implementation
+        return nullptr;
     }
 
     /**

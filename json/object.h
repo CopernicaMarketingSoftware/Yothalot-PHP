@@ -98,9 +98,7 @@ public:
     /**
      *  Destructor
      */
-    virtual ~Object()
-    {
-    }
+    virtual ~Object() = default;
 
     /**
      *  Size of the object (number of properties)

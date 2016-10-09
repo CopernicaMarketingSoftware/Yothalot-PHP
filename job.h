@@ -298,7 +298,7 @@ public:
         const char* server = params.size() >= 3 ? params[2].rawValue() : nullptr;
 
         // immediately redirect
-        if (!_impl->map(key, value, server)) return nullptr;
+        if (!_impl->add(key, value, server)) return nullptr;
 
         // allow chaining
         return this;

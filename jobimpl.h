@@ -23,6 +23,7 @@
 #include "tempqueue.h"
 #include "wrapper.h"
 #include "target.h"
+#include "notnull.h"
 
 /**
  *  Class definition
@@ -208,58 +209,63 @@ private:
         // do we already have such a file?
         if (_datafile != nullptr) return _datafile.get();
         
-        // if we're still initializing, and this is the only object with access to the
-        // json, we can still construct datafiles that are either stored in nosql or on disk
-        if (_state == state_initialize)
+        // exceptions could occur if file could not be created
+        try
         {
-            // construct a new output file, using the target settings (meaning that based
-            // on the size of the file it is going to be a disk based or nosql based file)
-            return install(new Yothalot::Output(&_target, _splitsize));
-        }
-        else if (_state == state_frozen)
-        {
+            // if we're still initializing, and this is the only object with access to the
+            // json, we can still construct datafiles that are either stored in nosql or on disk
+            if (_state == state_initialize) return install(new Yothalot::Output(&_target, _splitsize));
+
+            // the only situation that we can deal is when the object is frozen, the other
+            // cases (process is already running or completed) do not allow adding extra data
+            if (_state != state_frozen) return nullptr;
+
             // the job object has already been serialized, which means that multiple
             // instances have access to the data, and that we can no longer update
             // the json (because we dont know which script is leading), we must use
             // a file-based job object, make sure that the directory exists
-            if (!_directory.create()) return nullptr;
-            
+            _directory.create();
+                
             // create new file-based output object
-            // @todo remove all calls to uniqid() from other files
             return install(new Yothalot::Output(std::string(_directory.full()) + "/" + (std::string)Yothalot::UniqueName(), _splitsize, true));
         }
-        else
+        catch (...)
         {
-            // no file is available
+            // no datafile available
             return nullptr;
         }
     }
 
     /**
      *  Synchronize the datafile, so that the json is up-to-date
+     *  @param  keep        keep a file reference in memory, more data could follow
      *  @return bool
      */
-    bool sync()
+    bool sync(bool keep)
     {
-        // if there is no data file, there is nothing to flush
+]        // if there is no data file, there is nothing to flush
         if (_datafile == nullptr) return false;
         
         // we have a data file, flush it
         _datafile->flush();
         
-        // the datafile, is it stored in nosql or in a regular file?
-        if (strncasecmp(_datafile->name().data(), "cache://", 8) != 0) return true;
-
-        // the datafile is saved as an object in nosql. However, we are 
-        // only going to pass a directory to the yothalot master process,
-        // so we have to include this nosql address explicitly in the 
-        // json input. This can be done as a "cache://" filename
-        // @todo do this also when the job is started
-        // @todo do this also when the job is serialized
-        _json.file(_datafile->name().data(), 0, _datafile->size(), true, nullptr);
-        
-        // from this moment on, we can no longer use the nosql based data file
-        _datafile = nullptr;
+ \       // the datafile, is it stored in nosql or in a regular file?
+        if (strncasecmp(_datafile->name().data(), "cache://", 8) == 0)
+        {
+            // the datafile is saved as an object in nosql. However, we are 
+            // only going to pass a directory to the yothalot master process,
+            // so we have to include this nosql address explicitly in the 
+            // json input. This can be done as a "cache://" filename
+            _json.file(_datafile->name().data(), 0, _datafile->size(), true, nullptr);
+            
+            // from this moment on, we can no longer use the nosql based data file
+            _datafile = nullptr;
+\      }
+        else if (!keep)
+        {
+            // we do not have to keep a reference to the file
+            _datafile = nullptr;
+       }
 
         // done
         return true;
@@ -271,10 +277,6 @@ public:
      *  Constructor for constructing a brand new job
      *  @param  core        The core connection object
      *  @param  algo        User supplied algorithm object
-     *  @throws std::runtime_error
-     * 
-     *  @todo can this object indeed throw?
-     *  @todo do we catch this throw?
      */
     JobImpl(const std::shared_ptr<Core> &core, const Php::Value &algo) :
         _json(algo),
@@ -295,16 +297,15 @@ public:
      *  Throws an error if the json did not contain a directory
      *  @param  data        A JSON object holding unserialized data
      *  @throws std::runtime_error
-     * 
-     *  @todo is this error indeed throws
-     *  @todo catch this error
      */
     JobImpl(const JSON::Object &data) :
-        _json(data.object("job")),  // we don't create a _core connection here on purpose, as we just don't need one
+        _json(data.object("job")),
         _state(state_frozen),
-        _directory(_json.directory()),
+        _directory(NotNull<const char>(_json.directory())),
         _target(_directory.full())
     {
+        // we don't create a _core connection here on purpose, as we just don't need one
+        
         // @todo _json.directory() does it return an editable, removable, directory?
         
         // @todo revive algorithm object, and use that for finalizing
@@ -543,13 +544,7 @@ public:
     bool flush()
     {
         // synchronize the output file
-        if (!sync()) return false;
-        
-        // forget about the data file, even if it was a regular file
-        _datafile = nullptr;
-
-        // done
-        return true;
+        return sync(false);
     }
     
     /**
@@ -559,8 +554,9 @@ public:
      */
     void freeze()
     {
-        // synchronize output file
-        sync();
+        // synchronize output file (we can keep a reference to the file, because
+        // it is ok to add additional data to it)
+        sync(true);
         
         // update the state
         _state = state_frozen;
@@ -703,9 +699,12 @@ public:
             // store the name of the temp queue in the JSON
             _json.tempqueue(_tempqueue->name());
 
+            // before we start the job, we must ensure that all data is on disk or in nosq
+            sync(false);
+
             // now we must synchronize the json with the datafile that we use (if this is a nosql
             // based datafile, the json has to be updated), and send the job data to RabbitMQ
-            if (sync() && _json.publish(_core.get())) 
+            if (_json.publish(_core.get())) 
             {
                 // the job has been started
                 _state = state_running;
@@ -788,9 +787,11 @@ public:
         // if the job was already started, nothing is left to do
         if (_state == state_running) return true;
 
+        // we have to make sure that all data is on disk on in nosql
+        sync(false);
+
         // if the job was not yet started, we should do that now
         // @todo we may have to recreate the connection object
-        // @todo synchronize data?
         if (!_json.publish(_core.get())) return false;
 
         // mark job as started

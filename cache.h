@@ -39,6 +39,8 @@ private:
 public:
     /**
      *  Constructor
+     * 
+     *  @todo add "/tmp" parameter?
      */
     Cache() : 
         _connection(Php::ini_get("yothalot.cache")),

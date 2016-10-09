@@ -27,8 +27,6 @@ public:
     /**
      *  Constructor to serialize
      *  @param  impl        Job implementation object that is going to be serialized
-     * 
-     *  @todo does not throw an error, check if the callers are not inside a try-catch block
      */
     Serialized(JobImpl *impl)
     {

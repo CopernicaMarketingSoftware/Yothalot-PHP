@@ -316,8 +316,31 @@ public:
      */
     Copernica::NoSql::Connection *nosql()
     {
-        // @todo implementation
-        return nullptr;
+        // do we already have a nosql connection?
+        if (_nosql != nullptr) return _nosql.get();
+        
+        // prevent exceptions
+        try
+        {
+            // create the connection
+            auto *connection = new Copernica::NoSql::Connection(Php::ini_get("yothalot.cache"));
+            
+            // store in the smart pointer
+            _nosql.reset(connection);
+            
+            std::cout << "constructed nosql connection" << std::endl;
+            
+            // done
+            return connection;
+        }
+        catch (const std::runtime_error &error)
+        {
+            // report error
+            Php::warning << error.what() << std::flush;
+            
+            // no connection available
+            return nullptr;
+        }
     }
 
     /**

@@ -88,20 +88,11 @@ public:
         if (!connection.instanceOf("Yothalot\\Connection")) throw Php::Exception("Connection is not an instance of Yothalot\\Connection");
         if (!algo.instanceOf("Yothalot\\MapReduce") && !algo.instanceOf("Yothalot\\Race") && !algo.instanceOf("Yothalot\\Task")) throw Php::Exception("Connection is not an instance of Yothalot\\MapReduce, Yothalot\\Race or Yothalot\\Task.");
 
-        // prevent that exceptions bubble up
-        try
-        {
-            // retrieve the underlying C++ Connection object
-            auto *con = (Connection*) connection.implementation();
+        // retrieve the underlying C++ Connection object
+        auto *con = (Connection*) connection.implementation();
 
-            // construct the implementation
-            _impl.reset(new JobImpl(con->core(), algo));
-        }
-        catch (const std::runtime_error &error)
-        {
-            // convert to a PHP exception
-            throw Php::Exception(error.what());
-        }
+        // construct the implementation
+        _impl.reset(new JobImpl(con->core(), algo));
     }
 
     /**
@@ -435,24 +426,11 @@ public:
      */
     virtual std::string serialize() override
     {
-        // exceptions are thrown when the job is not at all serializable
-        // this happens when you serialize an object that does not have
-        // a directory on glusterfs, so that the whole reason why one
-        // would serialize (to move the job to a different server) is
-        // pointless in the first place
-        try
-        {
-            // tell the implementation object to serialize
-            Serialized result(_impl.get());
+        // tell the implementation object to serialize
+        Serialized result(_impl.get());
 
-            // done
-            return result;
-        }
-        catch (const std::runtime_error &error)
-        {
-            // turn the C++ exception into a PHP exception
-            throw Php::Exception(error.what());
-        }
+        // done
+        return result;
     }
 
     /**

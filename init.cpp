@@ -119,8 +119,11 @@ static int write(const Stdin &input)
         // wrap php object
         Wrapper mapreduce(input.object());
 
+        // construct cache settings
+        Cache cache;
+
         // create the task
-        Yothalot::WriteTask task(base(), &mapreduce);
+        Yothalot::WriteTask task(base(), &mapreduce, cache);
 
         // add the data to process
         task.process(input.data(), input.size());

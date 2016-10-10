@@ -43,6 +43,12 @@ private:
     mutable struct dirent *_entry = nullptr;
 
     /**
+     *  Does the directory exist
+     *  @return bool
+     */
+    bool _exists = false;
+
+    /**
      *  Intialize the _entry member
      *  @return struct dirent *
      */
@@ -99,6 +105,9 @@ public:
      */
     bool exists() const
     {
+        // do we already know this?
+        if (_exists) return true;
+        
         // file properties
         struct stat props;
         
@@ -106,7 +115,7 @@ public:
         if (stat(_name.full(), &props) != 0) return false;
         
         // must be a dir
-        return S_ISDIR(props.st_mode);
+        return _exists = S_ISDIR(props.st_mode);
     }
 
     /**
@@ -115,6 +124,9 @@ public:
      */
     bool create()
     {
+        // if the directory already exists
+        if (exists()) return true;
+        
         // try to construct the directory
         if (mkdir(_name.full(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH) == 0) return true;
 
@@ -126,7 +138,7 @@ public:
         mkdir(basedir.full(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
 
         // retry to create the actual directory
-        return mkdir(_name.full(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH) == 0;
+        return _exists = mkdir(_name.full(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH) == 0;
     }
 
     /**

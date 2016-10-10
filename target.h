@@ -13,6 +13,11 @@
 #pragma once
 
 /**
+ *  Dependencies
+ */
+#include "datasize.h"
+
+/**
  *  Class definition
  */
 class Target : public Yothalot::Target
@@ -24,7 +29,7 @@ public:
      *  @param  directory       directory to use
      */
     Target(Copernica::NoSql::Connection *connection, const char *directory) :
-        Yothalot::Target(connection, directory, (int64_t)Php::ini_get("yothalot.maxcache"), (int64_t)Php::ini_get("yothalot.ttl")) {}
+        Yothalot::Target(connection, directory, DataSize(Php::ini_get("yothalot.maxcache")), (int64_t)Php::ini_get("yothalot.ttl")) {}
 
     /**
      *  Constructor

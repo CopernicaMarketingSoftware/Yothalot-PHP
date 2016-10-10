@@ -245,15 +245,11 @@ private:
      */
     bool sync(bool keep)
     {
-        std::cout << "sync datafile" << std::endl;
-        
         // if there is no data file, there is nothing to flush
         if (_datafile == nullptr) return false;
         
         // we have a data file, flush it
         _datafile->flush();
-        
-        std::cout << "synced to " << _datafile->name() << std::endl;
         
         // the datafile, is it stored in nosql or in a regular file?
         if (strncasecmp(_datafile->name().data(), "cache://", 8) == 0)
@@ -374,7 +370,7 @@ public:
      *  Relative path name of the temporary directory
      *  @return const char
      */
-    const char *directory() const
+    const char *directory()
     {
         // if someone (in this case: an external php script) is interested in 
         // the directory, it must of course exist
@@ -621,8 +617,6 @@ public:
      */
     bool add(const Yothalot::Key &key, const Yothalot::Value &value, const char *server)
     {
-        std::cout << "JobImpl::add()" << std::endl;
-        
         // impossible if already started
         if (_state == state_running || _state == state_finished) return false;
 
@@ -635,8 +629,6 @@ public:
         // do we have such a datafile?
         if (file == nullptr)
         {
-            std::cout << "no datafile available" << std::endl;
-            
             // we can not add data to a shared file, so we must add it to the json,
             // which is not possible if there are multiple jobs around that all refer
             // to the same json
@@ -647,8 +639,6 @@ public:
         }
         else
         {
-            std::cout << "there is a datafile" << std::endl;
-            
             // add to the file
             file->add(Yothalot::Record(Yothalot::KeyValue(key, value)));
         }

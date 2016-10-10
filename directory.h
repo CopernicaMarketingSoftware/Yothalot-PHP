@@ -46,7 +46,7 @@ private:
      *  Does the directory exist
      *  @return bool
      */
-    bool _exists = false;
+    mutable bool _exists = false;
 
     /**
      *  Intialize the _entry member

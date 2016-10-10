@@ -42,11 +42,11 @@ private:
      */
     mutable struct dirent *_entry = nullptr;
 
-public:
     /**
-     *  Constructor, will create a temporary directory in the gluster mount point/tmp
+     *  Intialize the _entry member
+     *  @return struct dirent *
      */
-    Directory() : _name(base(), std::string("tmp/") + (std::string)Yothalot::UniqueName())
+    struct dirent *allocateEntry()
     {
         // Calculate buffer size (based on advise in man page)
         long name_max = pathconf(_name.full(), _PC_NAME_MAX);
@@ -58,14 +58,24 @@ public:
         size_t len = offsetof(struct dirent, d_name) + name_max + 1;
 
         // Allocate the buffer
-        _entry = static_cast<struct dirent*>(malloc(len));
+        return static_cast<struct dirent*>(malloc(len));
     }
+
+public:
+    /**
+     *  Constructor, will create a temporary directory in the gluster mount point/tmp
+     */
+    Directory() : 
+        _name(base(), std::string("tmp/") + (std::string)Yothalot::UniqueName()),
+        _entry(allocateEntry()) {}
 
     /**
      *  Constructor on string, that will use temporary directory in the gluster mount point/tmp
      *  @param  name        name of the directory, relative to the glusterfs mount point (should not be null)
      */
-    Directory(const char *name) : _name(base(), name) {}
+    Directory(const char *name) : 
+        _name(base(), name),
+        _entry(allocateEntry()) {}
 
     /**
      *  Destructor, can be empty since the server is cleaning up this directory

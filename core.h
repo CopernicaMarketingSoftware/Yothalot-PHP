@@ -328,8 +328,6 @@ public:
             // store in the smart pointer
             _nosql.reset(connection);
             
-            std::cout << "constructed nosql connection" << std::endl;
-            
             // done
             return connection;
         }

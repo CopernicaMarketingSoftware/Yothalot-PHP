@@ -243,13 +243,13 @@ private:
      */
     bool sync(bool keep)
     {
-]        // if there is no data file, there is nothing to flush
+        // if there is no data file, there is nothing to flush
         if (_datafile == nullptr) return false;
         
         // we have a data file, flush it
         _datafile->flush();
         
- \       // the datafile, is it stored in nosql or in a regular file?
+        // the datafile, is it stored in nosql or in a regular file?
         if (strncasecmp(_datafile->name().data(), "cache://", 8) == 0)
         {
             // the datafile is saved as an object in nosql. However, we are 
@@ -260,7 +260,7 @@ private:
             
             // from this moment on, we can no longer use the nosql based data file
             _datafile = nullptr;
-\      }
+        }
         else if (!keep)
         {
             // we do not have to keep a reference to the file

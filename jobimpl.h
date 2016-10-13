@@ -121,6 +121,42 @@ private:
         // this is possible
         return _state == state_initialize || _state == state_frozen;
     }
+
+    /**
+     *  Function to run the finalization process on the client
+     *  @return bool
+     */
+    bool finalize()
+    {
+        // hey. the finalizer did not yet run on the yothalot cluster, that means that we
+        // have to do the finalizing in this process
+        Wrapper mapreduce(_json.finalizer());
+        
+        // create the write task
+        Yothalot::WriteTask task(base(), &mapreduce, _core->nosql());
+
+        // get the input
+        auto input = _result.array("finalize");
+        
+        // traverse over the input for the finalize processes
+        for (int i = 0; i < input.size(); ++i)
+        {
+            // input for the finalizer
+            const char *data = input.c_str(i);
+            
+            // skip if it was not a string
+            if (data == nullptr) continue;
+
+            // pass to the task
+            task.process(data, strlen(data));
+
+            // @todo if there are cache:// identifiers in the input, we should remove these items
+            //       from nosql
+        }
+
+        // done
+        return true;
+    }
     
     /**
      *  Called when result comes in
@@ -130,8 +166,6 @@ private:
      */
     virtual void onReceived(TempQueue *queue, const char *buffer, size_t size) override
     {
-        std::cout << "we receive data: " << std::string(buffer, size) <<  std::endl;
-        
         // change state
         _state = state_finished;
         
@@ -144,34 +178,18 @@ private:
         // nothing left to be done when this is not a map-reduce job
         if (!isMapReduce() || _result.object("finalizers").integer("processes") > 0) return;
         
-        // name of the directory that contains the result files
+        // do we have to finalize the data ourselves?
+        if (_result.isArray("finalize")) finalize();
+
+        // name of the directory that contains the result files (this directory is normally not
+        // exposed, but if we have to run the finalizer ourselves, it sometimes is)
         const char *directory = _result.c_str("directory");
-        
+            
         // leap out if there is no directory with files
-        if (directory == nullptr) return;
-        
-        // hey. the finalizer did not yet run on the yothalot cluster, that means that we
-        // have to do the finalizing in this process
-        Wrapper mapreduce(_json.finalizer());
-        
-        // create the write task
-        Yothalot::WriteTask task(base(), &mapreduce, _core->nosql());
-        
-        // construct the full directory name
+        if (directory == nullptr || directory[0] == 0) return;
+
+        // construct the directory object
         Directory dir(directory);
-        
-        // traverse over the dir
-        dir.traverse([&task, &dir](const char *name) {
-            
-            // construct absolute path name of the file
-            std::string fullname(dir.full());
-            
-            // add directory name
-            fullname.append("/").append(name);
-            
-            // pass to the task
-            task.process(fullname.data(), 0, INT_MAX, 0, INT_MAX);
-        });
         
         // remove the directory
         dir.remove();

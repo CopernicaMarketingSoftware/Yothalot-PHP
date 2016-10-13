@@ -85,7 +85,7 @@ static int reduce(const Stdin &input)
         Cache cache;
 
         // create the task
-        Yothalot::ReduceTask task(base(), &mapreduce, cache);
+        Yothalot::ReduceTask task(base(), &mapreduce, cache, false);
 
         // add the data to process
         task.process(input.data(), input.size());
@@ -123,7 +123,7 @@ static int write(const Stdin &input)
         Cache cache;
 
         // create the task
-        Yothalot::WriteTask task(base(), &mapreduce, cache);
+        Yothalot::WriteTask task(base(), &mapreduce, cache, false);
 
         // add the data to process
         task.process(input.data(), input.size());

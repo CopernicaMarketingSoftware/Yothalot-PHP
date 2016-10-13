@@ -133,7 +133,7 @@ private:
         Wrapper mapreduce(_json.finalizer());
         
         // create the write task
-        Yothalot::WriteTask task(base(), &mapreduce, _core->nosql());
+        Yothalot::WriteTask task(base(), &mapreduce, _core->nosql(), true);
 
         // get the input
         auto input = _result.array("finalize");
@@ -149,9 +149,6 @@ private:
 
             // pass to the task
             task.process(data, strlen(data));
-
-            // @todo if there are cache:// identifiers in the input, we should remove these items
-            //       from nosql
         }
 
         // done

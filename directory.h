@@ -37,60 +37,29 @@ private:
     Yothalot::Fullname _name;
     
     /**
-     *  Entry pointer
-     *  @var struct dirent *
-     */
-    mutable struct dirent *_entry = nullptr;
-
-    /**
      *  Does the directory exist
      *  @return bool
      */
     mutable bool _exists = false;
 
-    /**
-     *  Intialize the _entry member
-     *  @return struct dirent *
-     */
-    struct dirent *allocateEntry()
-    {
-        // Calculate buffer size (based on advise in man page)
-        long name_max = pathconf(_name.full(), _PC_NAME_MAX);
-
-        // If limit is not defined or something went wrong, we guess the max size
-        if (name_max == -1) name_max = 511;
-
-        // calculate full max size of the struct dirent
-        size_t len = offsetof(struct dirent, d_name) + name_max + 1;
-
-        // Allocate the buffer
-        return static_cast<struct dirent*>(malloc(len));
-    }
 
 public:
     /**
      *  Constructor, will create a temporary directory in the gluster mount point/tmp
      */
     Directory() : 
-        _name(base(), std::string("tmp/") + (std::string)Yothalot::UniqueName()),
-        _entry(allocateEntry()) {}
+        _name(base(), std::string("tmp/") + (std::string)Yothalot::UniqueName()) {}
 
     /**
      *  Constructor on string, that will use temporary directory in the gluster mount point/tmp
      *  @param  name        name of the directory, relative to the glusterfs mount point (should not be null)
      */
-    Directory(const char *name) : 
-        _name(base(), name),
-        _entry(allocateEntry()) {}
+    Directory(const char *name) : _name(base(), name) {}
 
     /**
      *  Destructor, can be empty since the server is cleaning up this directory
      */
-    virtual ~Directory() 
-    {
-        // clean up entry resource
-        free(_entry);
-    }
+    virtual ~Directory() = default;
     
     /**
      *  Cast to boolean: does the directory exist?
@@ -169,9 +138,6 @@ public:
      */
     bool traverse(const std::function<void(struct dirent *entry)> &callback) const
     {
-        // temporary result variable
-        struct dirent *result = nullptr; 
-
         // reset the dir so traverse can be called again.
         auto *dirp = opendir(_name);
 
@@ -179,9 +145,11 @@ public:
         if (!dirp) return false;
         
         // iterate over the files and stop if all files are consumed
-        // readdir_r will return a !0 if there occurs an error
-        while(!readdir_r(dirp, _entry, &result))
+        while (true)
         {
+            // read next entry
+            auto *result = readdir(dirp);
+
             // If all files are consumed we break
             if (result == nullptr) break;
 

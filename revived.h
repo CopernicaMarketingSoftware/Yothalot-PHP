@@ -9,6 +9,11 @@
  */
 
 /**
+ *  Dependencies
+ */
+#include "cache.h"
+
+/**
  *  Include guard
  */
 #pragma once
@@ -37,11 +42,19 @@ private:
      */
     const char *_rest;
     
+    /**
+     *  Cache settings
+     *  @var Cache
+     */
+    Cache _cache;
+    
     
     /**
      *  Initialize the object
+     *  @return Php::Value  unserialized input data
+     *  @throws std::runtime_error
      */
-    void initialize()
+    bool initialize()
     {
         // look for the \n\n separator
         auto separator = _data.find("\n\n");
@@ -55,9 +68,12 @@ private:
         // unserialize the first part of the stdin
         Php::Value unserialized(Php::call("unserialize", Php::call("base64_decode", Php::Value(_data.data(), separator))));
 
+        // must be an array
+        if (!unserialized.isArray()) throw std::runtime_error("failed to unserialize input data");
+
         // store the includes and the actual object
         Php::Value includes = unserialized[0];
-        Php::Value serializedObject = unserialized[1];
+        Php::Value object = unserialized[1];
 
         // the return value of the includes method could be a single string
         if (includes.isString())
@@ -79,7 +95,13 @@ private:
         }
 
         // unserialize the inner object
-        _object = Php::call("unserialize", serializedObject);
+        _object = Php::call("unserialize", object);
+        
+        // must be an object
+        if (!_object.isObject()) throw std::runtime_error("failued to unserialize object");
+        
+        // done, expose the unserialized data
+        return unserialized;
     }
 
 public:
@@ -87,32 +109,21 @@ public:
      *  Constructor that takes an existing buffer
      *  @param  buffer
      */
-    Revived(const char *buffer) : _data(buffer)
-    {
-        // initialize the object
-        initialize();
-    }
+    Revived(const char *buffer) : 
+        _data(buffer), _cache(initialize(), 2) {}
 
     /**
      *  Constructor that takes an existing buffer
      *  @param  buffer
      *  @param  size
      */
-    Revived(const char *buffer, size_t size) : _data(buffer, size)
-    {
-        // initialize the object
-        initialize();
-    }
+    Revived(const char *buffer, size_t size) : _data(buffer, size), _cache(initialize(), 2) {}
 
     /**
      *  Constructor that takes an existing buffer
      *  @param  buffer
      */
-    Revived(std::string buffer) : _data(std::move(buffer))
-    {
-        // initialize the object
-        initialize();
-    }
+    Revived(std::string buffer) : _data(std::move(buffer)), _cache(initialize(), 2) {}
     
     /**
      *  Destructor
@@ -144,6 +155,15 @@ public:
     size_t size() const
     {
         return _data.size() - (_rest - _data.data());
+    }
+
+    /**
+     *  Target object
+     *  @return Yothalot::Target*
+     */
+    Yothalot::Target *target()
+    {
+        return _cache;
     }
 };
 

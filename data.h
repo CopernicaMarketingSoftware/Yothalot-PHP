@@ -98,6 +98,9 @@ private:
             Php::Value array(Php::Type::Array);
             array[0] = includes;
             array[1] = serialized;
+            array[2] = Php::ini_get("yothalot.cache");
+            array[3] = Php::ini_get("yothalot.maxcache");
+            array[4] = Php::ini_get("yothalot.ttl");
 
             // serialize the array, and base64 encode it to ensure that we have no NULL values in the string
             auto result = Php::call("base64_encode", Php::call("serialize", array));

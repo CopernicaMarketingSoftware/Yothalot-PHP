@@ -79,5 +79,14 @@ public:
     {
         return _data->size();
     }
+    
+    /**
+     *  Target object
+     *  @return Yothalot::Target*
+     */
+    Yothalot::Target *target() const
+    {
+        return _data->target();
+    }
 };
 

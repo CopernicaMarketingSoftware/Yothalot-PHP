@@ -42,11 +42,8 @@ static int map(const Stdin &input)
         // get the temp directory
         static TempDir tempdir;
         
-        // construct cache settings
-        Cache cache;
-
         // create the task
-        Yothalot::MapTask task(base(), &mapreduce, modulo, cache, tempdir);
+        Yothalot::MapTask task(base(), &mapreduce, modulo, input.target(), tempdir);
 
         // add the data to process
         task.process(input.data(), input.size());
@@ -81,11 +78,8 @@ static int reduce(const Stdin &input)
         // wrap php object
         Wrapper mapreduce(input.object());
 
-        // the cache settings
-        Cache cache;
-
         // create the task
-        Yothalot::ReduceTask task(base(), &mapreduce, cache, false);
+        Yothalot::ReduceTask task(base(), &mapreduce, input.target(), false);
 
         // add the data to process
         task.process(input.data(), input.size());
@@ -119,11 +113,8 @@ static int write(const Stdin &input)
         // wrap php object
         Wrapper mapreduce(input.object());
 
-        // construct cache settings
-        Cache cache;
-
         // create the task
-        Yothalot::WriteTask task(base(), &mapreduce, cache, false);
+        Yothalot::WriteTask task(base(), &mapreduce, input.target(), false);
 
         // add the data to process
         task.process(input.data(), input.size());

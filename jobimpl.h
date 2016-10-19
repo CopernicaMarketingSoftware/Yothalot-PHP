@@ -39,9 +39,9 @@ private:
 
     /**
      *  Shared pointer to the core AMQP connection
-     *  @var std::shared_ptr<Core>
+     *  @var std::shared_ptr<Rabbit>
      */
-    std::shared_ptr<Core> _core;
+    std::shared_ptr<Rabbit> _rabbit;
 
     /**
      *  State of the job
@@ -133,7 +133,7 @@ private:
         Wrapper mapreduce(_json.finalizer());
         
         // create the write task
-        Yothalot::WriteTask task(base(), &mapreduce, _core->nosql(), true);
+        Yothalot::WriteTask task(base(), &mapreduce, _rabbit->nosql(), true);
 
         // get the input
         auto input = _result.array("finalize");
@@ -292,14 +292,14 @@ private:
 public:
     /**
      *  Constructor for constructing a brand new job
-     *  @param  core        The core connection object
+     *  @param  rabbit      The core rabbitmq connection object
      *  @param  algo        User supplied algorithm object
      */
-    JobImpl(const std::shared_ptr<Core> &core, const Php::Value &algo) :
+    JobImpl(const std::shared_ptr<Rabbit> &rabbit, const Php::Value &algo) :
         _json(algo),
-        _core(core),
+        _rabbit(rabbit),
         _state(state_initialize),
-        _target(core->nosql(), _directory.full())
+        _target(rabbit->nosql(), _directory.full())
     {
         // the directory exists, set this in the json, we want the cleanup and no server
         if (_json.isMapReduce()) _json.directory(_directory.relative(), true, nullptr);
@@ -321,7 +321,7 @@ public:
         _directory(NotNull<const char>(_json.directory())),
         _target(_directory.full())
     {
-        // we don't create a _core connection here on purpose, as we just don't need one
+        // we don't create a _rabbit connection here on purpose, as we just don't need one
         
         // @todo _json.directory() does it return an editable, removable, directory?
         
@@ -714,8 +714,8 @@ public:
         try
         {
             // we need a temporary queue, because we might need to wait for the answer
-            // @todo we may have to re-initialize the core object
-            _tempqueue.reset(new TempQueue(this, _core));
+            // @todo we may have to re-initialize the rabbit object
+            _tempqueue.reset(new TempQueue(this, _rabbit));
 
             // store the name of the temp queue in the JSON
             _json.tempqueue(_tempqueue->name());
@@ -725,7 +725,7 @@ public:
 
             // now we must synchronize the json with the datafile that we use (if this is a nosql
             // based datafile, the json has to be updated), and send the job data to RabbitMQ
-            if (_json.publish(_core.get())) 
+            if (_json.publish(_rabbit.get())) 
             {
                 // the job has been started
                 _state = state_running;
@@ -746,7 +746,7 @@ public:
         catch (...)
         {
             // failure (no need to report to PHP space, as that is already done
-            // inside the Core class
+            // inside the Rabbit class
             return false;
         }
     }
@@ -813,7 +813,7 @@ public:
 
         // if the job was not yet started, we should do that now
         // @todo we may have to recreate the connection object
-        if (!_json.publish(_core.get())) return false;
+        if (!_json.publish(_rabbit.get())) return false;
 
         // mark job as started
         _state = state_running;
@@ -834,11 +834,11 @@ public:
 
     /**
      *  The underlying connection
-     *  @return Core
+     *  @return Rabbit
      */
-    const std::shared_ptr<Core> &core() const
+    const std::shared_ptr<Rabbit> &rabbit() const
     {
         // expose member
-        return _core;
+        return _rabbit;
     }
 };

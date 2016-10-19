@@ -34,7 +34,7 @@ public:
         set("job", impl->json());
 
         // and the other member holds all connection data
-        set("connection", impl->core()->json());
+        set("connection", impl->rabbit()->json());
         
         // freeze the job, from now on no more data may be added
         impl->freeze();

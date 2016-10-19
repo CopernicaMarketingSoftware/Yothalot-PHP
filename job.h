@@ -92,7 +92,7 @@ public:
         auto *con = (Connection*) connection.implementation();
 
         // construct the implementation
-        _impl.reset(new JobImpl(con->core(), algo));
+        _impl.reset(new JobImpl(con->rabbit(), algo));
     }
 
     /**
@@ -459,10 +459,10 @@ public:
 
     /**
      *  The underlying connection
-     *  @return Core
+     *  @return Rabbit
      */
-    const std::shared_ptr<Core> &core() const
+    const std::shared_ptr<Rabbit> &rabbit() const
     {
-        return _impl->core();
+        return _impl->rabbit();
     }
 };

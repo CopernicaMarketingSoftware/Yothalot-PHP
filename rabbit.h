@@ -1,10 +1,10 @@
 /**
- *  Reducer.h
+ *  Rabbit.h
  *
- *  The reducer class.
+ *  Wrap a rabbitmq connection
  *
  *  @author    Toon Schoenmakers <toon.schoenmakers@copernica.com>
- *  @copyright 2015 Copernica BV
+ *  @copyright 2015 - 2016 Copernica BV
  */
 
 /**
@@ -26,7 +26,7 @@
 /**
  *  Class definition
  */
-class Core : private AMQP::TcpHandler
+class Rabbit : private AMQP::TcpHandler
 {
 private:
     /**
@@ -146,17 +146,17 @@ public:
      *
      *  Watch out: throws an exception when connection could not be established
      *
-     *  @param  address
-     *  @param  exchange
-     *  @param  mapreduce
-     *  @param  races
-     *  @param  jobs
+     *  @param  address             rabbitmq address
+     *  @param  exchange            rabbitmq exchange
+     *  @param  mapreduce           queue for mapreduce jobs
+     *  @param  races               queue for race jobs
+     *  @param  jobs                queue for regular jobs
      *
      *  @throws std::runtime_error
      * 
      *  @todo why std::string?
      */
-    Core(const std::string &address, const std::string &exchange, const std::string &mapreduce, const std::string &races, const std::string &jobs)
+    Rabbit(const std::string &address, const std::string &exchange, const std::string &mapreduce, const std::string &races, const std::string &jobs)
     {
         // store all properties in the JSON
         _json.set("address", address);
@@ -192,13 +192,13 @@ public:
      *  Constructor based on serialized JSON data
      *  @param  data
      */
-    Core(const JSON::Object &object) :
+    Rabbit(const JSON::Object &object) :
         _json(object), _rabbit(nullptr) {}
 
     /**
      *  Destructor
      */
-    virtual ~Core()
+    virtual ~Rabbit()
     {
         // nothing to do for us when we're not connected
         if (!_rabbit) return;

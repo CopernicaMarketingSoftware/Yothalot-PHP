@@ -98,9 +98,9 @@ private:
             Php::Value array(Php::Type::Array);
             array[0] = includes;
             array[1] = serialized;
-            array[2] = Php::ini_get("yothalot.cache");
-            array[3] = Php::ini_get("yothalot.maxcache");
-            array[4] = Php::ini_get("yothalot.ttl");
+//            array[2] = core->cache();   //Php::ini_get("yothalot.cache");
+//            array[3] = core->maxcache();//Php::ini_get("yothalot.maxcache");
+//            array[4] = core->ttl();     //Php::ini_get("yothalot.ttl");
 
             // serialize the array, and base64 encode it to ensure that we have no NULL values in the string
             auto result = Php::call("base64_encode", Php::call("serialize", array));
@@ -116,7 +116,7 @@ private:
 public:
     /**
      *  Constructor
-     *  @param  algo       User-supplied algorithm object
+     *  @param  algo        User-supplied algorithm object
      */
     Data(const Php::Value &algo) : _php(algo)
     {
@@ -232,7 +232,7 @@ public:
      *  Publish the data to a connection
      *  @param  connection
      */
-    bool publish(Core *connection) const
+    bool publish(Rabbit *connection) const
     {
         switch (_algorithm) {
         case Algorithm::mapreduce:  return connection->mapreduce(*this);

@@ -1,10 +1,10 @@
 /**
- *  Reducer.h
+ *  Connection.h
  *
- *  The reducer class.
+ *  PHP class that contains all data about the rabbitmq and nosql settings
  *
  *  @author    Toon Schoenmakers <toon.schoenmakers@copernica.com>
- *  @copyright 2015 Copernica BV
+ *  @copyright 2015 - 2016 Copernica BV
  */
 
 /**
@@ -18,7 +18,8 @@
 #include <phpcpp.h>
 
 #include "tuplehelper.h"
-#include "core.h"
+#include "rabbit.h"
+#include "cache.h"
 
 /**
  *  Class definition
@@ -28,10 +29,16 @@ class Connection :
     public Php::Serializable {
 private:
     /**
-     *  Shared pointer to the core
-     *  @var std::shared_ptr<Core>
+     *  Shared pointer to the rabbit
+     *  @var std::shared_ptr<Rabbit>
      */
-    std::shared_ptr<Core> _core;
+    std::shared_ptr<Rabbit> _rabbit;
+    
+    /**
+     *  Shared pointer to the cache settings
+     *  @var std::shared_ptr<Cache>
+     */
+    std::shared_ptr<Cache> _cache;
 
 public:
     /**
@@ -53,18 +60,24 @@ public:
         // we need all parameters
         Php::Value param = params.size() == 0 ? Php::Object() : params[0];
 
-        // and extract all the optional parameters
-        std::string address     = (param.contains("address")    ? param["address"]      : Php::ini_get("yothalot.address")     .stringValue());
+        // and extract all the optional parameters for rabbitmq
+        std::string rabbit      = (param.contains("address")    ? param["address"]      : Php::ini_get("yothalot.address")     .stringValue());
         std::string exchange    = (param.contains("exchange")   ? param["exchange"]     : Php::ini_get("yothalot.exchange")    .stringValue());
         std::string mapreduce   = (param.contains("mapreduce")  ? param["mapreduce"]    : Php::ini_get("yothalot.mapreduce")   .stringValue());
         std::string races       = (param.contains("races")      ? param["races"]        : Php::ini_get("yothalot.races")       .stringValue());
         std::string jobs        = (param.contains("jobs")       ? param["jobs"]         : Php::ini_get("yothalot.jobs")        .stringValue());
 
+        // extract the optional parameters for nosql
+        std::string nosql       = (param.contains("cache")      ? param["cache"]        : Php::ini_get("yothalot.cache")       .stringValue());
+        size_t      maxcache    = (param.contains("maxcache")   ? param["maxcache"]     : Php::ini_get("yothalot.maxcache")    .numericValue());
+        time_t      ttl         = (param.contains("ttl")        ? param["ttl"]          : Php::ini_get("yothalot.ttl")         .numericValue());
+
         // creating a connection could throw
         try
         {
-            // create the actual connection
-            _core= std::make_shared<Core>(address, exchange, mapreduce, races, jobs);
+            // create the actual rabbitmq and nosql connections
+            _rabbit = std::make_shared<Rabbit>(std::move(rabbit), std::move(exchange), std::move(mapreduce), std::move(races), std::move(jobs));
+            _cache = std::make_shared<Cache>(std::move(nosql), maxcache, ttl);
         }
         catch (const std::runtime_error &error)
         {
@@ -79,15 +92,15 @@ public:
      */
     void flush()
     {
-        // call the flush method on the core
-        _core->flush();
+        // call the flush method on the rabbitmq connection
+        _rabbit->flush();
     }
 
     /**
-     *  Retrieve the core
-     *  @return std::shared_ptr<Core>
+     *  Retrieve the rabbit object
+     *  @return std::shared_ptr<Rabbit>
      */
-    const std::shared_ptr<Core> &core() const { return _core; }
+    const std::shared_ptr<Rabbit> &rabbit() const { return _rabbit; }
 
     /**
      *  Method to serialize the object
@@ -99,7 +112,7 @@ public:
      */
     virtual std::string serialize() override
     {
-        return _core->json();
+        return _rabbit->json();
     }
 
     /**
@@ -128,7 +141,7 @@ public:
         try
         {
             // create the actual connection
-            _core = std::make_shared<Core>(address, exchange, mapreduce, races, jobs);
+            _rabbit = std::make_shared<Rabbit>(address, exchange, mapreduce, races, jobs);
         }
         catch (const std::runtime_error &error)
         {

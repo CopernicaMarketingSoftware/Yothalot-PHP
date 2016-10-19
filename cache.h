@@ -25,6 +25,12 @@ class Cache
 {
 private:
     /**
+     *  The nosql address
+     *  @var std::string
+     */
+    std::string _address;
+
+    /**
      *  The nosql connection
      *  @var Copernica::NoSql::Connection
      */
@@ -114,7 +120,7 @@ private:
      *  @param  helper
      */
     Cache(const Helper &helper) : 
-        _connection(helper.address()), _target(&_connection, helper.maxcache(), helper.ttl()) {}
+        _address(helper.address()), _connection(helper.address()), _target(&_connection, helper.maxcache(), helper.ttl()) {}
 
 public:
     /**
@@ -125,15 +131,13 @@ public:
      * 
      *  @todo add "/tmp" parameter?
      */
-    Cache(const char *address, size_t maxcache, time_t ttl) : 
-        _connection(address), _target(&_connection, maxcache, ttl) {}
+    Cache(std::string address, size_t maxcache, time_t ttl) : 
+        _address(std::move(address)), _connection(_address.data()), _target(&_connection, maxcache, ttl) {}
 
     /**
      *  Constructor
      */
-    Cache(bool dummy) : 
-        Cache(Php::ini_get("yothalot.cache"), DataSize(Php::ini_get("yothalot.maxcache")), (int64_t)Php::ini_get("yothalot.ttl")) {}
-
+    Cache() : Cache(Php::ini_get("yothalot.cache"), DataSize(Php::ini_get("yothalot.maxcache")), (int64_t)Php::ini_get("yothalot.ttl")) {}
     
     /**
      *  Constructor

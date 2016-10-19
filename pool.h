@@ -29,7 +29,7 @@ private:
      *  Set of all connections
      *  @var std::set
      */
-    std::set<std::shared_ptr<Core>> _cores;
+    std::set<std::shared_ptr<Rabbit>> _rabbits;
     
     
     /**
@@ -40,7 +40,7 @@ private:
     void process(int fd, int flags) const
     {
         // check all connections
-        for (const auto &core : _cores) core->connection()->process(fd, flags);
+        for (const auto &rabbit : _rabbits) rabbit->connection()->process(fd, flags);
     }
 
     /**
@@ -105,8 +105,8 @@ public:
         // add the jobimpl class
         _jobs.insert(std::make_pair(wrapper, phpjob));
         
-        // add the core connection
-        _cores.insert(wrapper->core());
+        // add the rabbit connection
+        _rabbits.insert(wrapper->rabbit());
     }
     
     /**
@@ -116,13 +116,13 @@ public:
     Php::Value fetch()
     {
         // skip if there are no more connections listed
-        if (_cores.empty()) return nullptr;
+        if (_rabbits.empty()) return nullptr;
         
         // we are going to create one big event loop with the file descriptors of all connections
         Descriptors descriptors;
     
         // check all connections
-        for (const auto &core : _cores) descriptors.add(core->descriptors());
+        for (const auto &rabbit : _rabbits) descriptors.add(rabbit->descriptors());
 
         // construct an event loop based on all these file descriptors
         Loop loop(descriptors);
@@ -159,13 +159,13 @@ public:
     Php::Value wait()
     {
         // skip if there are no more connections listed
-        if (_cores.empty()) return nullptr;
+        if (_rabbits.empty()) return nullptr;
         
         // we are going to create one big event loop with the file descriptors of all connections
         Descriptors descriptors;
     
         // check all connections
-        for (const auto &core : _cores) descriptors.add(core->descriptors());
+        for (const auto &rabbit : _rabbits) descriptors.add(rabbit->descriptors());
         
         // construct an event loop based on all these file descriptors
         Loop loop(descriptors);
@@ -185,7 +185,7 @@ public:
         }
         
         // there are no more active jobs
-        _cores.clear();
+        _rabbits.clear();
         
         // impossible to return a job
         return nullptr;

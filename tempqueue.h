@@ -54,10 +54,10 @@ private:
     Owner *_owner;
 
     /**
-     *  Core connection object
-     *  @var std::shared_ptr<Core>
+     *  Rabbit connection object
+     *  @var std::shared_ptr<Rabbit>
      */
-    std::shared_ptr<Core> _core;
+    std::shared_ptr<Rabbit> _rabbit;
 
     /**
      *  The event loop
@@ -180,10 +180,10 @@ public:
     /**
      *  Constructor
      *  @param  owner       Object that will be notified with the result
-     *  @param  core        The core RabbitMQ connection
+     *  @param  rabbit      The core RabbitMQ connection
      */
-    TempQueue(Owner *owner, const std::shared_ptr<Core> &core) : 
-        _owner(owner), _core(core), _loop(core->descriptors()), _channel(core->connection())
+    TempQueue(Owner *owner, const std::shared_ptr<Rabbit> &rabbit) : 
+        _owner(owner), _rabbit(rabbit), _loop(rabbit->descriptors()), _channel(rabbit->connection())
     {
         // set up error handler
         _channel.onError(std::bind(&TempQueue::onError, this, _1));
@@ -196,7 +196,7 @@ public:
         
         // run the event loop, because we need to know the name, this will run
         // until the declareQueue operation is finished
-        _loop.run(core->connection());
+        _loop.run(rabbit->connection());
     }
 
     /**
@@ -211,7 +211,7 @@ public:
         if (!_cancelled) _channel.cancel(_name).onSuccess(std::bind(&TempQueue::onCancelled, this, _1));
         
         // run the event loop a little longer
-        _loop.run(_core->connection());
+        _loop.run(_rabbit->connection());
     }
 
     /**
@@ -233,7 +233,7 @@ public:
         if (_ready) return;
         
         // start the event loop, it will come to an end when we have the result
-        _loop.run(_core->connection());
+        _loop.run(_rabbit->connection());
     }
     
     /**

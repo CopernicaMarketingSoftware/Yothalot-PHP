@@ -42,6 +42,12 @@ private:
      *  @var std::shared_ptr<Rabbit>
      */
     std::shared_ptr<Rabbit> _rabbit;
+    
+    /**
+     *  Shared pointer to the core cache settings
+     *  @var std::shared_ptr<Cache>
+     */
+    std::shared_ptr<Cache> _cache;
 
     /**
      *  State of the job
@@ -133,7 +139,7 @@ private:
         Wrapper mapreduce(_json.finalizer());
         
         // create the write task
-        Yothalot::WriteTask task(base(), &mapreduce, _rabbit->nosql(), true);
+        Yothalot::WriteTask task(base(), &mapreduce, _cache->connection(), true);
 
         // get the input
         auto input = _result.array("finalize");
@@ -299,8 +305,9 @@ public:
     JobImpl(const std::shared_ptr<Rabbit> &rabbit, const std::shared_ptr<Cache> &cache, const Php::Value &algo) :
         _json(cache.get(), algo),
         _rabbit(rabbit),
+        _cache(cache),
         _state(state_initialize),
-        _target(rabbit->nosql(), _directory.full())
+        _target(_cache, _directory.full())
     {
         // the directory exists, set this in the json, we want the cleanup and no server
         if (_json.isMapReduce()) _json.directory(_directory.relative(), true, nullptr);
@@ -322,7 +329,7 @@ public:
         _directory(NotNull<const char>(_json.directory())),
         _target(_directory.full())
     {
-        // we don't create a _rabbit connection here on purpose, as we just don't need one
+        // we don't create a _rabbit and _cache connections here on purpose, as we just don't need one
         
         // @todo _json.directory() does it return an editable, removable, directory?
         

@@ -309,37 +309,6 @@ public:
         // retrieve the connection
         return _rabbit.get();
     }
-    
-    /**
-     *  Expose the nosql cache
-     *  @return Copernica::NoSql::Connection
-     */
-    Copernica::NoSql::Connection *nosql()
-    {
-        // do we already have a nosql connection?
-        if (_nosql != nullptr) return _nosql.get();
-        
-        // prevent exceptions
-        try
-        {
-            // create the connection
-            auto *connection = new Copernica::NoSql::Connection(Php::ini_get("yothalot.cache"));
-            
-            // store in the smart pointer
-            _nosql.reset(connection);
-            
-            // done
-            return connection;
-        }
-        catch (const std::runtime_error &error)
-        {
-            // report error
-            Php::warning << error.what() << std::flush;
-            
-            // no connection available
-            return nullptr;
-        }
-    }
 
     /**
      *  Retrieve the JSON representation of this object

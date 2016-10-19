@@ -13,11 +13,6 @@
 #pragma once
 
 /**
- *  Dependencies
- */
-#include "datasize.h"
-
-/**
  *  Class definition
  */
 class Target : public Yothalot::Target
@@ -25,11 +20,11 @@ class Target : public Yothalot::Target
 public:
     /**
      *  Constructor
-     *  @param  connection      nosql connection
+     *  @param  cache           cache settings to use
      *  @param  directory       directory to use
      */
-    Target(Copernica::NoSql::Connection *connection, const char *directory) :
-        Yothalot::Target(connection, directory, DataSize(Php::ini_get("yothalot.maxcache")), (int64_t)Php::ini_get("yothalot.ttl")) {}
+    Target(const std::shared_ptr<Cache> &cache, const char *directory) :
+        Yothalot::Target(cache->connection(), directory, cache->maxsize(), cache->ttl()) {}
 
     /**
      *  Constructor

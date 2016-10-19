@@ -39,6 +39,8 @@ private:
     /**
      *  The actual yothalot target class
      *  @var Yothalot::Target
+     * 
+     *  @todo do we need this here?
      */
     Yothalot::Target _target;
     
@@ -180,6 +182,15 @@ public:
     {
         // pass on to target object
         return _target.ttl();
+    }
+    
+    /**
+     *  Expose the nosql connection
+     *  @return Copernica::NoSql::Connection
+     */
+    Copernica::NoSql::Connection *connection()
+    {
+        return &_connection;
     }
     
     /**

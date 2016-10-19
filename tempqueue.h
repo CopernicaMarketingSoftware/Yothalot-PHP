@@ -121,6 +121,9 @@ private:
         // stop further consuming
         _channel.cancel(_name).onSuccess(std::bind(&TempQueue::onCancelled, this, _1));
 
+        // remember that consumer has been cancelled
+        _cancelled = true;
+
         // tell the owner
         _owner->onReceived(this, message.body(), message.bodySize());
     }
@@ -147,9 +150,6 @@ private:
      */
     void onCancelled(const std::string &consumer)
     {
-        // remember that consumer has been cancelled
-        _cancelled = true;
-        
         // we no longer need the queue
         _channel.removeQueue(_name).onSuccess(std::bind(&TempQueue::onRemoved, this, _1));
     }
@@ -169,7 +169,7 @@ private:
      */
     void onClosed()
     {
-        // object is ready
+        // object is ready / result is available
         _ready = true;
 
         // stop private event loop

@@ -40,6 +40,12 @@ private:
      */
     std::shared_ptr<Cache> _cache;
 
+    /**
+     *  JSON object with all the nosql and rabbitmq settings
+     */
+    JSON::Object _json;
+
+
 public:
     /**
      *  Constructor
@@ -61,23 +67,33 @@ public:
         Php::Value param = params.size() == 0 ? Php::Object() : params[0];
 
         // and extract all the optional parameters for rabbitmq
-        std::string rabbit      = (param.contains("address")    ? param["address"]      : Php::ini_get("yothalot.address")     .stringValue());
+        std::string address     = (param.contains("address")    ? param["address"]      : Php::ini_get("yothalot.address")     .stringValue());
         std::string exchange    = (param.contains("exchange")   ? param["exchange"]     : Php::ini_get("yothalot.exchange")    .stringValue());
         std::string mapreduce   = (param.contains("mapreduce")  ? param["mapreduce"]    : Php::ini_get("yothalot.mapreduce")   .stringValue());
         std::string races       = (param.contains("races")      ? param["races"]        : Php::ini_get("yothalot.races")       .stringValue());
         std::string jobs        = (param.contains("jobs")       ? param["jobs"]         : Php::ini_get("yothalot.jobs")        .stringValue());
 
         // extract the optional parameters for nosql
-        std::string nosql       = (param.contains("cache")      ? param["cache"]        : Php::ini_get("yothalot.cache")       .stringValue());
+        std::string cache       = (param.contains("cache")      ? param["cache"]        : Php::ini_get("yothalot.cache")       .stringValue());
         size_t      maxcache    = (param.contains("maxcache")   ? param["maxcache"]     : Php::ini_get("yothalot.maxcache")    .numericValue());
         time_t      ttl         = (param.contains("ttl")        ? param["ttl"]          : Php::ini_get("yothalot.ttl")         .numericValue());
+
+        // store all properties in the JSON
+        _json.set("address", address);
+        _json.set("exchange", exchange);
+        _json.set("mapreduce", mapreduce);
+        _json.set("races", races);
+        _json.set("jobs", jobs);
+        _json.set("cache", cache);
+        _json.set("maxcache", (int64_t)maxcache);
+        _json.set("ttl", (int64_t)ttl);
 
         // creating a connection could throw
         try
         {
             // create the actual rabbitmq and nosql connections
-            _rabbit = std::make_shared<Rabbit>(std::move(rabbit), std::move(exchange), std::move(mapreduce), std::move(races), std::move(jobs));
-            _cache = std::make_shared<Cache>(std::move(nosql), maxcache, ttl);
+            _rabbit = std::make_shared<Rabbit>(std::move(address), std::move(exchange), std::move(mapreduce), std::move(races), std::move(jobs));
+            _cache = std::make_shared<Cache>(std::move(cache), maxcache, ttl);
         }
         catch (const std::runtime_error &error)
         {
@@ -103,6 +119,12 @@ public:
     const std::shared_ptr<Rabbit> &rabbit() const { return _rabbit; }
 
     /**
+     *  Retrieve the cache object
+     *  @return std::shared_ptr<Cache>
+     */
+    const std::shared_ptr<Cache> &cache() const { return _cache; }
+
+    /**
      *  Method to serialize the object
      *
      *  This method should return a string representation of the object that
@@ -112,7 +134,7 @@ public:
      */
     virtual std::string serialize() override
     {
-        return _rabbit->json();
+        return _json;
     }
 
     /**
@@ -136,12 +158,16 @@ public:
         std::string mapreduce = (json.contains("mapreduce") ? json.c_str("mapreduce") : Php::ini_get("yothalot.mapreduce"));
         std::string races = (json.contains("races") ? json.c_str("races") : Php::ini_get("yothalot.jobs"));
         std::string jobs = (json.contains("jobs") ? json.c_str("jobs") : Php::ini_get("yothalot.jobs"));
+        std::string cache = (json.contains("cache") ? json.c_str("cache") : Php::ini_get("yothalot.cache"));
+        size_t maxcache = (json.contains("maxcache") ? json.integer("maxcache") : Php::ini_get("yothalot.maxcache"));
+        time_t ttl = (json.contains("ttl") ? json.integer("ttl") : Php::ini_get("yothalot.ttl"));
 
         // creating a connection could throw
         try
         {
-            // create the actual connection
-            _rabbit = std::make_shared<Rabbit>(address, exchange, mapreduce, races, jobs);
+            // create the actual connections
+            _rabbit = std::make_shared<Rabbit>(std::move(address), std::move(exchange), std::move(mapreduce), std::move(races), std::move(jobs));
+            _cache = std::make_shared<Cache>(std::move(cache), maxcache, ttl);
         }
         catch (const std::runtime_error &error)
         {

@@ -344,6 +344,8 @@ public:
     /**
      *  Retrieve the JSON representation of this object
      *  @return JSON::Object
+     * 
+     *  @todo remove this method??
      */
     const JSON::Object &json() const
     {

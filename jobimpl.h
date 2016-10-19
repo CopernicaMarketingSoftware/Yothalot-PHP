@@ -722,7 +722,6 @@ public:
         try
         {
             // we need a temporary queue, because we might need to wait for the answer
-            // @todo we may have to re-initialize the rabbit object
             _tempqueue.reset(new TempQueue(this, _rabbit));
 
             // store the name of the temp queue in the JSON
@@ -820,7 +819,6 @@ public:
         sync(false);
 
         // if the job was not yet started, we should do that now
-        // @todo we may have to recreate the connection object
         if (!_json.publish(_rabbit.get())) return false;
 
         // mark job as started

@@ -113,6 +113,30 @@ private:
             append("\n\n");
         }
     };
+    
+    /**
+     *  We also have to send the cache settings to the server, that is encapsulated here
+     */
+    class CacheData : public JSON::Object
+    {
+    public:
+        /**
+         *  Constructor
+         *  @param  cache       Cache object
+         */
+        CacheData(const Cache *cache)
+        {
+            // set all the properties
+            set("address", cache->address());
+            set("maxsize", (int)cache->maxsize());
+            set("ttl", (int)cache->ttl());
+        }
+
+        /**
+         *  Destructor
+         */
+        virtual ~CacheData() = default;
+    };
 
 public:
     /**
@@ -135,6 +159,7 @@ public:
             set("mapper", Executable("mapper", input));
             set("reducer", Executable("reducer", input));
             set("finalizer", Executable("finalizer", input));
+            set("cache", CacheData(cache));
 
             // remember algorithm type
             _algorithm = Algorithm::mapreduce;

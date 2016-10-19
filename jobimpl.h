@@ -24,6 +24,7 @@
 #include "wrapper.h"
 #include "target.h"
 #include "notnull.h"
+#include "workingdir.h"
 
 /**
  *  Class definition
@@ -130,35 +131,48 @@ private:
 
     /**
      *  Function to run the finalization process on the client
+     *  @param  directory
      *  @return bool
      */
-    bool finalize()
+    bool finalize(const Directory &directory)
     {
-        // hey. the finalizer did not yet run on the yothalot cluster, that means that we
-        // have to do the finalizing in this process
-        Wrapper mapreduce(_json.finalizer());
-        
-        // create the write task
-        Yothalot::WriteTask task(base(), &mapreduce, _cache->connection(), true);
-
-        // get the input
-        auto input = _result.array("finalize");
-        
-        // traverse over the input for the finalize processes
-        for (int i = 0; i < input.size(); ++i)
+        // prevent exceptions (the working dir object could for example throw)
+        try
         {
-            // input for the finalizer
-            const char *data = input.c_str(i);
+            // hey. the finalizer did not yet run on the yothalot cluster, that means that we
+            // have to do the finalizing in this process
+            Wrapper mapreduce(_json.finalizer());
             
-            // skip if it was not a string
-            if (data == nullptr) continue;
+            // change working dir (the destructor will change back to current dir)
+            WorkingDir workingdir(directory.full());
+        
+            // create the write task
+            Yothalot::WriteTask task(base(), &mapreduce, _cache->connection(), true);
 
-            // pass to the task
-            task.process(data, strlen(data));
+            // get the input
+            auto input = _result.array("finalize");
+            
+            // traverse over the input for the finalize processes
+            for (int i = 0; i < input.size(); ++i)
+            {
+                // input for the finalizer
+                const char *data = input.c_str(i);
+                
+                // skip if it was not a string
+                if (data == nullptr) continue;
+                
+                // pass to the task
+                task.process(data, strlen(data));
+            }
+
+            // done
+            return true;
         }
-
-        // done
-        return true;
+        catch (const std::runtime_error &error)
+        {
+            // something went terribly wrong
+            return false;
+        }
     }
     
     /**
@@ -180,9 +194,6 @@ private:
         
         // nothing left to be done when this is not a map-reduce job
         if (!isMapReduce() || _result.object("finalizers").integer("processes") > 0) return;
-        
-        // do we have to finalize the data ourselves?
-        if (_result.isArray("finalize")) finalize();
 
         // name of the directory that contains the result files (this directory is normally not
         // exposed, but if we have to run the finalizer ourselves, it sometimes is)
@@ -193,6 +204,9 @@ private:
 
         // construct the directory object
         Directory dir(directory);
+        
+        // do we have to finalize the data ourselves?
+        if (_result.isArray("finalize")) finalize(dir);
         
         // remove the directory
         dir.remove();

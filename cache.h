@@ -37,13 +37,17 @@ private:
     Copernica::NoSql::Connection _connection;
 
     /**
-     *  The actual yothalot target class
-     *  @var Yothalot::Target
-     * 
-     *  @todo do we need this here?
+     *  Max-cache setting
+     *  @var size_t
      */
-    Yothalot::Target _target;
+    size_t _maxsize;
     
+    /**
+     *  TTL setting
+     *  @var time_t
+     */
+    time_t _ttl;
+
     
     /**
      *  Helper class to extract data from a php::value
@@ -122,7 +126,10 @@ private:
      *  @param  helper
      */
     Cache(const Helper &helper) : 
-        _address(helper.address()), _connection(helper.address()), _target(&_connection, helper.maxcache(), helper.ttl()) {}
+        _address(helper.address()), 
+        _connection(helper.address()), 
+        _maxsize(helper.maxcache()), 
+        _ttl(helper.ttl()) {}
 
 public:
     /**
@@ -130,14 +137,14 @@ public:
      *  @param  address     address of the nosql server
      *  @param  maxcache    max size of items to be cached
      *  @param  ttl         time-to-live for cached items
-     * 
-     *  @todo add "/tmp" parameter?
      */
     Cache(std::string address, size_t maxcache, time_t ttl) : 
-        _address(std::move(address)), _connection(_address.data()), _target(&_connection, maxcache, ttl) {}
+        _address(std::move(address)), _connection(_address.data()), _maxsize(maxcache), _ttl(ttl) {}
 
     /**
      *  Constructor
+     * 
+     *  @todo this can be removed / do we use the DataSize object in all places setting?
      */
     Cache() : Cache(Php::ini_get("yothalot.cache"), DataSize(Php::ini_get("yothalot.maxcache")), (int64_t)Php::ini_get("yothalot.ttl")) {}
     
@@ -170,8 +177,8 @@ public:
      */
     size_t maxsize() const
     {
-        // pass on to the target object
-        return _target.maxsize();
+        // expose member
+        return _maxsize;
     }
     
     /**
@@ -180,8 +187,8 @@ public:
      */
     time_t ttl() const
     {
-        // pass on to target object
-        return _target.ttl();
+        // expose member
+        return _ttl;
     }
     
     /**
@@ -191,16 +198,6 @@ public:
     Copernica::NoSql::Connection *connection()
     {
         return &_connection;
-    }
-    
-    /**
-     *  Cast to a target pointer
-     *  @return Yothalot::Target*
-     */
-    operator Yothalot::Target* ()
-    {
-        // expose the target
-        return &_target;
     }
 };
 

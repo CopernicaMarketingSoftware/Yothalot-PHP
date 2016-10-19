@@ -48,6 +48,12 @@ private:
      */
     Cache _cache;
     
+    /**
+     *  The yothalot target object
+     *  @var Yothalot::Target
+     */
+    Yothalot::Target _target;
+    
     
     /**
      *  Initialize the object
@@ -110,20 +116,28 @@ public:
      *  @param  buffer
      */
     Revived(const char *buffer) : 
-        _data(buffer), _cache(initialize(), 2) {}
+        _data(buffer), 
+        _cache(initialize(), 2), 
+        _target(_cache.connection(), _cache.maxsize(), _cache.ttl()) {}
 
     /**
      *  Constructor that takes an existing buffer
      *  @param  buffer
      *  @param  size
      */
-    Revived(const char *buffer, size_t size) : _data(buffer, size), _cache(initialize(), 2) {}
+    Revived(const char *buffer, size_t size) : 
+        _data(buffer, size), 
+        _cache(initialize(), 2),
+        _target(_cache.connection(), _cache.maxsize(), _cache.ttl()) {}
 
     /**
      *  Constructor that takes an existing buffer
      *  @param  buffer
      */
-    Revived(std::string buffer) : _data(std::move(buffer)), _cache(initialize(), 2) {}
+    Revived(std::string buffer) : 
+        _data(std::move(buffer)), 
+        _cache(initialize(), 2),
+        _target(_cache.connection(), _cache.maxsize(), _cache.ttl()) {}
     
     /**
      *  Destructor
@@ -156,14 +170,14 @@ public:
     {
         return _data.size() - (_rest - _data.data());
     }
-
+    
     /**
-     *  Target object
-     *  @return Yothalot::Target*
+     *  Expose target object
+     *  @return Yothalot::Target
      */
     Yothalot::Target *target()
     {
-        return _cache;
+        return &_target;
     }
 };
 

@@ -29,7 +29,7 @@ private:
      *  @var Revived
      */
     std::unique_ptr<Revived> _data;
-
+    
 public:
     /**
      *  Constructor that reads input and turns it into a string

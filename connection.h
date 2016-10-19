@@ -93,12 +93,23 @@ public:
         {
             // create the actual rabbitmq and nosql connections
             _rabbit = std::make_shared<Rabbit>(std::move(address), std::move(exchange), std::move(mapreduce), std::move(races), std::move(jobs));
+        }
+        catch (const std::runtime_error &error)
+        {
+            // convert C++ exception into a PHP exception
+            throw Php::Exception(std::string("rabbitmq error: ") + error.what());
+        }
+        
+        // prevent exceptions for nosql errors
+        try
+        {
+            // create the nosql error
             _cache = std::make_shared<Cache>(std::move(cache), maxcache, ttl);
         }
         catch (const std::runtime_error &error)
         {
             // convert C++ exception into a PHP exception
-            throw Php::Exception(error.what());
+            throw Php::Exception(std::string("cache error: ") + error.what());
         }
     }
 

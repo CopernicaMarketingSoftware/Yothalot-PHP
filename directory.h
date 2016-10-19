@@ -142,7 +142,7 @@ public:
         auto *dirp = opendir(_name);
 
         // leap out if directory could not be opened
-        if (!dirp) return false;
+        if (dirp == nullptr) return false;
         
         // iterate over the files and stop if all files are consumed
         while (true)

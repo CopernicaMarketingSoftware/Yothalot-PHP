@@ -293,10 +293,11 @@ public:
     /**
      *  Constructor for constructing a brand new job
      *  @param  rabbit      The core rabbitmq connection object
+     *  @param  cache       The cache settings
      *  @param  algo        User supplied algorithm object
      */
-    JobImpl(const std::shared_ptr<Rabbit> &rabbit, const Php::Value &algo) :
-        _json(algo),
+    JobImpl(const std::shared_ptr<Rabbit> &rabbit, const std::shared_ptr<Cache> &cache, const Php::Value &algo) :
+        _json(cache.get(), algo),
         _rabbit(rabbit),
         _state(state_initialize),
         _target(rabbit->nosql(), _directory.full())

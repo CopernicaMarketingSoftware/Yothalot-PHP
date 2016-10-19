@@ -153,6 +153,36 @@ public:
     virtual ~Cache() = default;
     
     /**
+     *  Expose the address
+     *  @return std::string
+     */
+    const std::string &address() const
+    {
+        // expose member
+        return _address;
+    }
+    
+    /**
+     *  Max size for items in the cache
+     *  @return size_t
+     */
+    size_t maxsize() const
+    {
+        // pass on to the target object
+        return _target.maxsize();
+    }
+    
+    /**
+     *  Expose the ttl for items
+     *  @return time_t
+     */
+    time_t ttl() const
+    {
+        // pass on to target object
+        return _target.ttl();
+    }
+    
+    /**
      *  Cast to a target pointer
      *  @return Yothalot::Target*
      */

@@ -92,7 +92,7 @@ public:
         auto *con = (Connection*) connection.implementation();
 
         // construct the implementation
-        _impl.reset(new JobImpl(con->rabbit(), algo));
+        _impl.reset(new JobImpl(con->rabbit(), con->cache(), algo));
     }
 
     /**

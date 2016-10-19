@@ -84,9 +84,10 @@ private:
     public:
         /**
          *  Constructor
+         *  @param  cache       The cache settings
          *  @param  algo        User supplied algorithm object
          */
-        InputData(const Php::Value &algo)
+        InputData(const Cache *cache, const Php::Value &algo)
         {
             // serialize the user-supplied object
             auto serialized = Php::call("serialize", algo);
@@ -98,9 +99,9 @@ private:
             Php::Value array(Php::Type::Array);
             array[0] = includes;
             array[1] = serialized;
-//            array[2] = core->cache();   //Php::ini_get("yothalot.cache");
-//            array[3] = core->maxcache();//Php::ini_get("yothalot.maxcache");
-//            array[4] = core->ttl();     //Php::ini_get("yothalot.ttl");
+            array[2] = cache->address();
+            array[3] = (int64_t)cache->maxsize();
+            array[4] = (int64_t)cache->ttl();
 
             // serialize the array, and base64 encode it to ensure that we have no NULL values in the string
             auto result = Php::call("base64_encode", Php::call("serialize", array));
@@ -116,12 +117,13 @@ private:
 public:
     /**
      *  Constructor
+     *  @param  cache       The cache object
      *  @param  algo        User-supplied algorithm object
      */
-    Data(const Php::Value &algo) : _php(algo)
+    Data(const Cache *cache, const Php::Value &algo) : _php(algo)
     {
         // construct the input data
-        InputData input(algo);
+        InputData input(cache, algo);
 
         // in case we're a map reduce algorithm we set a modulo, mapper, reducer and writer
         if (algo.instanceOf("Yothalot\\MapReduce") || algo.instanceOf("Yothalot\\MapReduce2"))

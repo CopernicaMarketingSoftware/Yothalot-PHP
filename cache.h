@@ -143,13 +143,6 @@ public:
 
     /**
      *  Constructor
-     * 
-     *  @todo this can be removed / do we use the DataSize object in all places setting?
-     */
-    Cache() : Cache(Php::ini_get("yothalot.cache"), DataSize(Php::ini_get("yothalot.maxcache")), (int64_t)Php::ini_get("yothalot.ttl")) {}
-    
-    /**
-     *  Constructor
      *  @param  data        unserialized input data
      *  @param  offset      number of initial entries to skip
      */

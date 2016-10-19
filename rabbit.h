@@ -30,10 +30,24 @@ class Rabbit : private AMQP::TcpHandler
 {
 private:
     /**
-     *  JSON object holding all properties
-     *  @var JSON::Object
+     *  The AMQP address
+     *  @var AMQP::Address
      */
-    JSON::Object _json;
+    AMQP::Address _address;
+    
+    /**
+     *  The name of the exchange to which messages are published
+     *  @var std::string
+     */
+    std::string _exchange;
+    
+    /**
+     *  The name of the queues for mapreduce, regular and race jobs
+     *  @var std::string
+     */
+    std::string _mapreduce;
+    std::string _races;
+    std::string _jobs;
 
     /**
      *  The file descriptors used by the connection
@@ -114,11 +128,8 @@ private:
         // not necessary if already connected
         if (_rabbit) return true;
 
-        // the connection address
-        AMQP::Address address(_json.c_str("address"));
-
         // create the connection (it will the stored as a member in the onConnected() method)
-        auto *connection = new AMQP::TcpConnection(this, address);
+        auto *connection = new AMQP::TcpConnection(this, _address);
 
         // keep running the event loop, until the connection is valid
         while (!_rabbit && _error.empty())
@@ -156,17 +167,15 @@ public:
      * 
      *  @todo why std::string?
      */
-    Rabbit(const std::string &address, const std::string &exchange, const std::string &mapreduce, const std::string &races, const std::string &jobs)
+    Rabbit(std::string address, std::string exchange, std::string mapreduce, std::string races, std::string jobs) : 
+        _address(std::move(address)),
+        _exchange(std::move(exchange)),
+        _mapreduce(std::move(mapreduce)),
+        _races(std::move(races)),
+        _jobs(std::move(jobs))
     {
-        // store all properties in the JSON
-        _json.set("address", address);
-        _json.set("exchange", exchange);
-        _json.set("mapreduce", mapreduce);
-        _json.set("races", races);
-        _json.set("jobs", jobs);
-        
         // construct a connection
-        auto *connection = new AMQP::TcpConnection(this, AMQP::Address(address));
+        auto *connection = new AMQP::TcpConnection(this, _address);
         
         // keep running the event loop, until the connection is valid
         while (!_rabbit && _error.empty())
@@ -187,13 +196,6 @@ public:
         // connection was reset, this means that the onError() method was called
         throw std::runtime_error(_error);
     }
-
-    /**
-     *  Constructor based on serialized JSON data
-     *  @param  data
-     */
-    Rabbit(const JSON::Object &object) :
-        _json(object), _rabbit(nullptr) {}
 
     /**
      *  Destructor
@@ -231,7 +233,7 @@ public:
     bool mapreduce(const JSON::Object &json)
     {
         // publish to the mapreduce queue
-        return publish(_json.c_str("mapreduce"), json);
+        return publish(_mapreduce, json);
     }
 
     /**
@@ -242,7 +244,7 @@ public:
     bool race(const JSON::Object &json)
     {
         // publish to the race queue
-        return publish(_json.c_str("races"), json);
+        return publish(_races, json);
     }
 
     /**
@@ -253,7 +255,7 @@ public:
     bool job(const JSON::Object &json)
     {
         // publish to the mapreduce queue
-        return publish(_json.c_str("jobs"), json);
+        return publish(_jobs, json);
     }
 
     /**
@@ -262,7 +264,7 @@ public:
      *  @param  json        The JSON data to be published
      *  @return bool
      */
-    bool publish(const char *queue, const JSON::Object &json)
+    bool publish(const std::string &queue, const JSON::Object &json)
     {
         // create the connection to the RabbitMQ server
         if (!connect()) return false;
@@ -271,7 +273,7 @@ public:
         AMQP::TcpChannel channel(_rabbit.get());
 
         // publish the json
-        channel.publish(_json.c_str("exchange"), queue, json.toString());
+        channel.publish(_exchange, queue, json.toString());
 
         // done
         return true;
@@ -308,17 +310,5 @@ public:
 
         // retrieve the connection
         return _rabbit.get();
-    }
-
-    /**
-     *  Retrieve the JSON representation of this object
-     *  @return JSON::Object
-     * 
-     *  @todo remove this method??
-     */
-    const JSON::Object &json() const
-    {
-        // return the json
-        return _json;
     }
 };

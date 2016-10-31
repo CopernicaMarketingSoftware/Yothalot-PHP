@@ -101,7 +101,7 @@ extern "C" {
         // register the methods on our php classes
         job.method<&Job::__construct>("__construct", {
             Php::ByVal("connection", "Yothalot\\Connection"),
-            Php::ByVal("algorithm") // This should be either Yothalot\MapReduce, Yothalot\MapReduce2, Yothalot\Race or Yothalot\Task
+            Php::ByVal("algorithm") // This should be either Yothalot\MapReduce, Yothalot\MapReduce2, Yothalot\RecordReduce, Yothalot\Race or Yothalot\Task
         }).method<&Job::splitsize>("splitsize", {
             Php::ByVal("splitsize", Php::Type::Numeric)
         }).method<&Job::add>("add", { // old, v1 on single argument. new, singular keys/values otherwise for more arguments
@@ -297,6 +297,22 @@ extern "C" {
             Php::ByVal("value", Php::Type::Null)
         }).method("includes");
 
+        // create the record reduce interface
+        Php::Interface recordreduce("Yothalot\\RecordReduce");
+
+        // register the interface methods
+        recordreduce.method("map", {
+            Php::ByVal("record", "Yothalot\\Record"),
+            Php::ByVal("reducer", "Yothalot\\Reducer")
+        }).method("reduce", {
+            Php::ByVal("key", Php::Type::Null),
+            Php::ByVal("values", "Yothalot\\Values"),
+            Php::ByVal("writer", "Yothalot\\Writer")
+        }).method("write", {
+            Php::ByVal("key", Php::Type::Null),
+            Php::ByVal("value", Php::Type::Null)
+        }).method("includes");
+
         // we alias MapReduce2 to MapReduce
         Php::Interface mapreduce2("Yothalot\\MapReduce2");
         mapreduce2.extends(mapreduce);
@@ -324,6 +340,7 @@ extern "C" {
         extension.add(std::move(job));
         extension.add(std::move(path));
         extension.add(std::move(mapreduce));
+        extension.add(std::move(recordreduce));
         extension.add(std::move(mapreduce2));
         extension.add(std::move(race));
         extension.add(std::move(task));

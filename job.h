@@ -4,7 +4,7 @@
  *  The job class.
  *
  *  @author    Toon Schoenmakers <toon.schoenmakers@copernica.com>
- *  @copyright 2015 Copernica BV
+ *  @copyright 2015 - 2016 Copernica BV
  */
 
 /**
@@ -16,9 +16,7 @@
  *  Dependencies
  */
 #include <phpcpp.h>
-
 #include "connection.h"
-#include "tuplehelper.h"
 #include "reducer.h"
 #include "values.h"
 #include "writer.h"
@@ -41,10 +39,7 @@ using TaskError         =   Error<TaskResult>;
 /**
  *  Class definition
  */
-class Job :
-    public Php::Base,
-    public Php::Serializable,
-    public TupleHelper
+class Job : public Php::Base, public Php::Serializable
 {
 private:
     /**
@@ -72,7 +67,7 @@ public:
     /**
      *  Job PHP constructor
      *  Requires two PHP parameters: a Yothalot\\Connection object, and a
-     *  Yothalot\\MapReduce object
+     *  Yothalot\\MapReduce object (or one of the other algorithms)
      *  @param  params
      */
     void __construct(Php::Parameters &params)
@@ -86,7 +81,7 @@ public:
 
         // check type of parameters
         if (!connection.instanceOf("Yothalot\\Connection")) throw Php::Exception("Connection is not an instance of Yothalot\\Connection");
-        if (!algo.instanceOf("Yothalot\\MapReduce") && !algo.instanceOf("Yothalot\\Race") && !algo.instanceOf("Yothalot\\Task")) throw Php::Exception("Connection is not an instance of Yothalot\\MapReduce, Yothalot\\Race or Yothalot\\Task.");
+        if (!algo.instanceOf("Yothalot\\MapReduce") && !algo.instanceOf("Yothalot\\RecordReduce") && !algo.instanceOf("Yothalot\\Race") && !algo.instanceOf("Yothalot\\Task")) throw Php::Exception("Connection is not an instance of Yothalot\\MapReduce, Yothalot\\RecordReduce, Yothalot\\Race or Yothalot\\Task.");
 
         // retrieve the underlying C++ Connection object
         auto *con = (Connection*) connection.implementation();
@@ -248,8 +243,8 @@ public:
             if (params.size() < 2) return nullptr;
 
             // create the key and the value from the parameters
-            auto key = toTuple(params[0]);
-            auto value = toTuple(params[1]);
+            Tuple::Yothalot key(params[0]);
+            Tuple::Yothalot value(params[1]);
 
             // get the possible server
             const char* server = params.size() >= 3 ? params[2].rawValue() : nullptr;
@@ -282,8 +277,8 @@ public:
     Php::Value map(Php::Parameters &params)
     {
         // create the key and the value from the parameters
-        auto key = toTuple(params[0]);
-        auto value = toTuple(params[1]);
+        Tuple::Yothalot key(params[0]);
+        Tuple::Yothalot value(params[1]);
 
         // get the possible server
         const char* server = params.size() >= 3 ? params[2].rawValue() : nullptr;

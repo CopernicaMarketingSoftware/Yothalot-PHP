@@ -24,7 +24,7 @@
 /**
  *  Class definition
  */
-class Data : public JSON::Object, private TupleHelper
+class Data : public JSON::Object
 {
 private:
     /**
@@ -150,7 +150,7 @@ public:
         InputData input(cache, algo);
 
         // in case we're a map reduce algorithm we set a modulo, mapper, reducer and writer
-        if (algo.instanceOf("Yothalot\\MapReduce") || algo.instanceOf("Yothalot\\MapReduce2"))
+        if (algo.instanceOf("Yothalot\\RecordReduce") || algo.instanceOf("Yothalot\\MapReduce") || algo.instanceOf("Yothalot\\MapReduce2"))
         {
             // set default limits
             set("processes", 20);
@@ -472,10 +472,10 @@ public:
         JSON::Object object;
 
         // set the key in the json
-        object.set("key", toJson(key));
+        object.set("key", Tuple::Json(key));
 
         // set the value in the json
-        object.set("value", toJson(value));
+        object.set("value", Tuple::Json(value));
 
         // set the server if present
         if (server && *server != 0) object.set("server", server);

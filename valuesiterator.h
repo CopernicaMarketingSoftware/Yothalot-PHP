@@ -4,7 +4,7 @@
  *  Class to iterate over values
  *
  *  @author Toon Schoenmakers <toon.schoenmakers@copernica.com>
- *  @copyright 2015 Copernica BV
+ *  @copyright 2015 - 2016 Copernica BV
  */
 
 /**
@@ -17,8 +17,7 @@
  */
 #include <phpcpp.h>
 #include <yothalot.h>
-
-#include "tuplehelper.h"
+#include "tuple.h"
 
 /**
  *  Forward declaration
@@ -28,9 +27,7 @@ class Values;
 /**
  *  Class definition
  */
-class ValuesIterator :
-    public Php::Iterator,
-    public TupleHelper
+class ValuesIterator : public Php::Iterator
 {
 private:
     /**
@@ -77,7 +74,7 @@ public:
         if (!_values) return nullptr;
 
         // construct the tuple
-        return fromTuple(*_values);
+        return Tuple::Php(*_values);
     }
 
     /**

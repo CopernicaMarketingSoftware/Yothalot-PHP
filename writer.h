@@ -4,7 +4,7 @@
  *  The writer class.
  *
  *  @author    Toon Schoenmakers <toon.schoenmakers@copernica.com>
- *  @copyright 2015 Copernica BV
+ *  @copyright 2015 - 2016 Copernica BV
  */
 
 /**
@@ -17,15 +17,13 @@
  */
 #include <phpcpp.h>
 #include <yothalot.h>
-
-#include "tuplehelper.h"
+#include "tuple.h"
 
 /**
  *  Class definition
  */
-class Writer :
-    public Php::Base,
-    public TupleHelper {
+class Writer : public Php::Base
+{
 private:
     /**
      *  The actual underlying writer by reference
@@ -52,6 +50,6 @@ public:
         Php::Value value = params[0];
 
         // and pass the value as a tuple onto the writer
-        _writer.emit(toTuple(value));
+        _writer.emit(Tuple::Yothalot(value));
     }
 };

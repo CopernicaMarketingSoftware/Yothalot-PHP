@@ -4,7 +4,7 @@
  *  Simple event loop implementation
  *
  *  @author    Toon Schoenmakers <toon.schoenmakers@copernica.com>
- *  @copyright 2015 Copernica BV
+ *  @copyright 2015 - 2016 Copernica BV
  */
 
 /**
@@ -19,6 +19,11 @@
 #include <set>
 #include <sys/select.h>
 #include "fdset.h"
+
+/** 
+ *  We use the _1, _2, _3 placeholders
+ */
+using namespace std::placeholders;
 
 /**
  *  Class definition

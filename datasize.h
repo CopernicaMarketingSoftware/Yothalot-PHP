@@ -12,6 +12,11 @@
  *  Include guard
  */
 #pragma once
+
+/**
+ *  Dependencies
+ */
+#include <sstream>
  
 /**
  *  Class definition

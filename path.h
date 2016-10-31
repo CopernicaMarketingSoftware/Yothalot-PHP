@@ -4,7 +4,7 @@
  *  The reducer class.
  *
  *  @author    Toon Schoenmakers <toon.schoenmakers@copernica.com>
- *  @copyright 2015 Copernica BV
+ *  @copyright 2015 - 2016 Copernica BV
  */
 
 /**
@@ -16,13 +16,13 @@
  *  Dependencies
  */
 #include <phpcpp.h>
-#include "tuplehelper.h"
 #include "base.h"
 
 /**
  *  Class definition
  */
-class Path : public Php::Base {
+class Path : public Php::Base 
+{
 private:
     /**
      *  The underlying fullname class

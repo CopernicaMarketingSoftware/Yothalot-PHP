@@ -17,9 +17,8 @@
  */
 #include <phpcpp.h>
 #include <amqpcpp.h>
-
+#include <copernica/nosql.h>
 #include "json/object.h"
-#include "tuplehelper.h"
 #include "descriptors.h"
 #include "loop.h"
 

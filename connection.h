@@ -16,8 +16,6 @@
  *  Dependencies
  */
 #include <phpcpp.h>
-
-#include "tuplehelper.h"
 #include "rabbit.h"
 #include "cache.h"
 

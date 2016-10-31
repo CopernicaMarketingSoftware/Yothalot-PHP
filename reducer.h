@@ -4,7 +4,7 @@
  *  The reducer class.
  *
  *  @author    Toon Schoenmakers <toon.schoenmakers@copernica.com>
- *  @copyright 2015 Copernica BV
+ *  @copyright 2015 - 2016 Copernica BV
  */
 
 /**
@@ -16,18 +16,18 @@
  *  Dependencies
  */
 #include <phpcpp.h>
-
-#include "tuplehelper.h"
+#include <yothalot.h>
+#include "tuple.h"
 
 /**
  *  Class definition
  */
-class Reducer :
-    public Php::Base,
-    public TupleHelper {
+class Reducer : public Php::Base
+{
 private:
     /**
      *  The underlying reducer by reference
+     *  @var Yothalot::Reducer
      */
     Yothalot::Reducer &_reducer;
 
@@ -52,6 +52,6 @@ public:
         Php::Value value = params[1];
 
         // pass the key and value to the actual reducer
-        _reducer.emit(toTuple(key), toTuple(value));
+        _reducer.emit(Tuple::Yothalot(key), Tuple::Yothalot(value));
     }
 };

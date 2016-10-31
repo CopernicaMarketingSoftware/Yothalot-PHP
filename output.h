@@ -5,7 +5,7 @@
  *  that are used by the mapreduce algorithm
  *
  *  @author Emiel Bruijntjes <emiel.bruijntjes@copernica.com>
- *  @copyright 2015 Copernica BV
+ *  @copyright 2015 - 2016 Copernica BV
  */
 
 /**
@@ -16,7 +16,7 @@
 /**
  *  Class definition
  */
-class Output : public Php::Base, private TupleHelper
+class Output : public Php::Base
 {
 private:
     /**
@@ -172,8 +172,12 @@ public:
         // need two parameters
         if (params.size() != 2) Php::error << "Yothalot\\Output::kv($key, $value) requires two parameters" << std::flush;
 
+        // wrap the key and value
+        Tuple::Yothalot key(params[0]);
+        Tuple::Yothalot value(params[1]);
+
         // construct the record from the keyvalue
-        Yothalot::Record record(Yothalot::KeyValue(toTuple(params[0]), toTuple(params[1])));
+        Yothalot::Record record(Yothalot::KeyValue(key, value));
 
         // add the record to the file
         _impl->add(record);

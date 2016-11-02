@@ -31,11 +31,6 @@ private:
      */
     std::string _name;
 
-    /**
-     *  Save the splitsize for if we have to reconstruct ourselves later on
-     *  @var std::size_t
-     */
-    std::size_t _splitsize = 0;
 
 public:
     /**
@@ -49,14 +44,12 @@ public:
 
         // read the params
         _name = params[0].stringValue();
-        _splitsize = (params.size() >= 2) ? params[1].numericValue() : 0;
 
         // prevent exceptions (C++ errors should not bubble up to PHP space)
         try
         {
             // construct the object based on the amount of php parameters that were passed
-            if (_splitsize > 0) _impl.reset(new Yothalot::Output(_name.data(), _splitsize));
-            else _impl.reset(new Yothalot::Output(_name.data()));
+            _impl.reset(new Yothalot::Output(_name.data()));
         }
         catch (const std::runtime_error &error)
         {

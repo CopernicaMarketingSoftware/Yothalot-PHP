@@ -102,8 +102,6 @@ extern "C" {
         job.method<&Job::__construct>("__construct", {
             Php::ByVal("connection", "Yothalot\\Connection"),
             Php::ByVal("algorithm") // This should be either Yothalot\MapReduce, Yothalot\MapReduce2, Yothalot\RecordReduce, Yothalot\Race or Yothalot\Task
-        }).method<&Job::splitsize>("splitsize", {
-            Php::ByVal("splitsize", Php::Type::Numeric)
         }).method<&Job::add>("add", { // old, v1 on single argument. new, singular keys/values otherwise for more arguments
             Php::ByVal("key", Php::Type::Null),
             Php::ByVal("value", Php::Type::Null, false),
@@ -158,7 +156,6 @@ extern "C" {
         // register the output methods
         output.method<&Output::__construct>("__construct", {
             Php::ByVal("filename", Php::Type::String),
-            Php::ByVal("splitsize", Php::Type::Numeric, false)
         }).method<&Output::add>("add", {
             Php::ByVal("identifier", Php::Type::Numeric),
             Php::ByVal("fields", Php::Type::Array)

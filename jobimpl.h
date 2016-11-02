@@ -90,12 +90,6 @@ private:
      */
     JSON::Object _result;
 
-    /**
-     *  Split size for the file
-     *  @var    size_t
-     */
-    size_t _splitsize = 10 * 1024 * 1024;
-
     
     /**
      *  Was the job an error
@@ -251,7 +245,7 @@ private:
         {
             // if we're still initializing, and this is the only object with access to the
             // json, we can still construct datafiles that are either stored in nosql or on disk
-            if (_state == state_initialize) return install(new Yothalot::Output(&_target, _splitsize));
+            if (_state == state_initialize) return install(new Yothalot::Output(&_target));
 
             // the only situation that we can deal is when the object is frozen, the other
             // cases (process is already running or completed) do not allow adding extra data
@@ -264,7 +258,7 @@ private:
             _directory.create();
                 
             // create new file-based output object
-            return install(new Yothalot::Output(std::string(_directory.full()) + "/" + (std::string)Yothalot::UniqueName(), _splitsize, true));
+            return install(new Yothalot::Output(std::string(_directory.full()) + "/" + (std::string)Yothalot::UniqueName(), true));
         }
         catch (...)
         {
@@ -372,35 +366,6 @@ public:
     {
         // just retrieve the algorithm from the data
         return _json.algorithm();
-    }
-
-    /**
-     *  Set the split-size to be used for input used
-     *  in the mapper task.
-     *
-     *  @param  splitsize   The desired split size for created input files
-     *  @return Was the split size successfully changed (this can only be done before input is generated)
-     */
-    bool splitsize(size_t splitsize)
-    {
-        // this is only possible if we have no input files whatsoever
-        if (_datafile) return false;
-        
-        // @todo check if there is no input set in the json
-        // @todo check if there are no other input files in the directory
-        // @todo check if we can initialize _splitsize based on existing input
-        
-        
-        // not possible if we have already generated a datafile object, or if the 
-        // job was already started
-        // @todo 
-        //if (_output || _state != state_initialize) return false;
-
-        // update the split size
-        _splitsize = splitsize;
-
-        // success!
-        return true;
     }
 
     /**
@@ -529,12 +494,12 @@ public:
         // not possible if job is no longer tunable
         if (!isTunable()) return false;
 
-        // the byte limit for each mapper *must* be a multiple of the
+        // @todo the byte limit for each mapper *must* be a multiple of the
         // split size of the generated input files, because they are
         // compressed, so we can only read from the start of a split
-        if (mapper    % _splitsize) return false;
-        if (reducer   % _splitsize) return false;
-        if (finalizer % _splitsize) return false;
+        //if (mapper    % _splitsize) return false;
+        //if (reducer   % _splitsize) return false;
+        //if (finalizer % _splitsize) return false;
 
         // set in the json
         _json.maxbytes(mapper, reducer, finalizer);

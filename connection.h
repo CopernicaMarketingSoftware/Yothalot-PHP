@@ -40,6 +40,7 @@ private:
 
     /**
      *  JSON object with all the nosql and rabbitmq settings
+     *  @var JSON::Object
      */
     JSON::Object _json;
 
@@ -75,7 +76,10 @@ public:
         std::string cache       = (param.contains("cache")      ? param["cache"]        : Php::ini_get("yothalot.cache")       .stringValue());
         size_t      maxcache    = (param.contains("maxcache")   ? param["maxcache"]     : Php::ini_get("yothalot.maxcache")    .numericValue());
         time_t      ttl         = (param.contains("ttl")        ? param["ttl"]          : Php::ini_get("yothalot.ttl")         .numericValue());
-
+        
+        // the type of feedback mechanism that should be used
+        std::string feedback    = (param.contains("feedback")   ? param["feedback"]     : Php::ini_get("yothalot.feedback")    .stringValue());
+        
         // store all properties in the JSON
         _json.set("address", address);
         _json.set("exchange", exchange);
@@ -90,7 +94,7 @@ public:
         try
         {
             // create the actual rabbitmq and nosql connections
-            _rabbit = std::make_shared<Rabbit>(std::move(address), std::move(exchange), std::move(mapreduce), std::move(races), std::move(jobs));
+            _rabbit = std::make_shared<Rabbit>(std::move(address), std::move(exchange), std::move(mapreduce), std::move(races), std::move(jobs), feedback == "rabbit");
         }
         catch (const std::runtime_error &error)
         {
@@ -171,11 +175,15 @@ public:
         size_t maxcache = (json.contains("maxcache") ? json.integer("maxcache") : Php::ini_get("yothalot.maxcache"));
         time_t ttl = (json.contains("ttl") ? json.integer("ttl") : Php::ini_get("yothalot.ttl"));
 
+        // the type of feedback mechanism that should be used
+        // @todo do we need this in the json????
+        std::string feedback = Php::ini_get("yothalot.feedback");
+
         // creating a connection could throw
         try
         {
             // create the actual connections
-            _rabbit = std::make_shared<Rabbit>(std::move(address), std::move(exchange), std::move(mapreduce), std::move(races), std::move(jobs));
+            _rabbit = std::make_shared<Rabbit>(std::move(address), std::move(exchange), std::move(mapreduce), std::move(races), std::move(jobs), feedback == "rabbit");
             _cache = std::make_shared<Cache>(std::move(cache), maxcache, ttl);
         }
         catch (const std::runtime_error &error)

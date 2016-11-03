@@ -21,6 +21,7 @@
 #include <limits.h>
 #include "data.h"
 #include "tempqueue.h"
+#include "listener.h"
 #include "wrapper.h"
 #include "target.h"
 #include "notnull.h"
@@ -702,7 +703,7 @@ public:
         try
         {
             // we need a temporary queue, because we might need to wait for the answer
-            _feedback.reset(new TempQueue(this, _rabbit));
+            _feedback.reset(_rabbit->feedback() ? (Feedback *)new TempQueue(this, _rabbit) : (Feedback *)new Listener(this));
 
             // store the name of the temp queue in the JSON
             _json.tempqueue(_feedback->name());

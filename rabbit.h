@@ -72,6 +72,12 @@ private:
      *  @var NoSql::Connection
      */
     std::unique_ptr<Copernica::NoSql::Connection> _nosql;
+    
+    /**
+     *  Should we also use this rabbitmq connection as the feedback channel?
+     *  @var bool
+     */
+    bool _feedback = false;
 
     /**
      *  Called when connection is in error state
@@ -162,17 +168,19 @@ public:
      *  @param  mapreduce           queue for mapreduce jobs
      *  @param  races               queue for race jobs
      *  @param  jobs                queue for regular jobs
+     *  @param  feedback            use this connection also to receive the feedback / results
      *
      *  @throws std::runtime_error
      * 
      *  @todo why std::string?
      */
-    Rabbit(std::string address, std::string exchange, std::string mapreduce, std::string races, std::string jobs) : 
+    Rabbit(std::string address, std::string exchange, std::string mapreduce, std::string races, std::string jobs, bool feedback) : 
         _address(std::move(address)),
         _exchange(std::move(exchange)),
         _mapreduce(std::move(mapreduce)),
         _races(std::move(races)),
-        _jobs(std::move(jobs))
+        _jobs(std::move(jobs)),
+        _feedback(feedback)
     {
         // construct a connection
         auto *connection = new AMQP::TcpConnection(this, _address);
@@ -321,5 +329,15 @@ public:
 
         // retrieve the connection
         return _rabbit.get();
+    }
+    
+    /**
+     *  Is it ok to use this rabbitmq connection for feedback too?
+     *  @return bool
+     */
+    bool feedback() const
+    {
+        // expose member
+        return _feedback;
     }
 };

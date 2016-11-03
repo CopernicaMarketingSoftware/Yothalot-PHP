@@ -29,7 +29,7 @@
 /**
  *  Class definition
  */
-class JobImpl : private TempQueue::Owner
+class JobImpl : private Feedback::Owner
 {
 private:
     /**
@@ -61,10 +61,11 @@ private:
     } _state;
 
     /**
-     *  The temporary queue the result will be published to
-     *  @var TempQueue
+     *  The feedback channel where the result will be published to (this is either
+     *  a temporary queue, or a tcp socket to which the server is going to send the results)
+     *  @var std::unique_ptr<Feedback>
      */
-    std::unique_ptr<TempQueue> _tempqueue;
+    std::unique_ptr<Feedback> _feedback;
 
     /**
      *  The temporary directory holding all input data
@@ -171,11 +172,11 @@ private:
     
     /**
      *  Called when result comes in
-     *  @param  queue
-     *  @param  buffer
-     *  @param  size
+     *  @param  feedback        the feedback channel
+     *  @param  buffer          the received message
+     *  @param  size            size of the message
      */
-    virtual void onReceived(TempQueue *queue, const char *buffer, size_t size) override
+    virtual void onReceived(Feedback *feedback, const char *buffer, size_t size) override
     {
         // change state
         _state = state_finished;
@@ -208,10 +209,10 @@ private:
     
     /**
      *  Called in case of an error
-     *  @param  queue
-     *  @param  message
+     *  @param  feedback        the feedback channel
+     *  @param  message         user readable error message
      */
-    virtual void onError(TempQueue *queue, const char *message) override
+    virtual void onError(Feedback *feedback, const char *message) override
     {
         // remember that we're in an error state
         _state = state_finished;
@@ -701,10 +702,10 @@ public:
         try
         {
             // we need a temporary queue, because we might need to wait for the answer
-            _tempqueue.reset(new TempQueue(this, _rabbit));
+            _feedback.reset(new TempQueue(this, _rabbit));
 
             // store the name of the temp queue in the JSON
-            _json.tempqueue(_tempqueue->name());
+            _json.tempqueue(_feedback->name());
 
             // before we start the job, we must ensure that all data is on disk or in nosq
             sync(false);
@@ -721,8 +722,8 @@ public:
             }
             else
             {
-                // destruct the tempqueue
-                _tempqueue = nullptr;
+                // destruct the feedback channel
+                _feedback = nullptr;
 
                 // the weird situation is that we can not connect to RabbitMQ...
                 // (really weird because we did manage to create the temp queue...)
@@ -759,11 +760,11 @@ public:
         // make sure the job is started
         if (!start()) return false;
 
-        // if there is no temp queue, the job was detached, and we cannot wait
-        if (_tempqueue == nullptr) return false;
+        // if there is no feedback channel, the job was detached, and we cannot wait
+        if (_feedback == nullptr) return false;
 
-        // wait for the result to appear in the temporary result queue
-        _tempqueue->wait();
+        // wait for the result to appear in the feedback channel
+        _feedback->wait();
 
         // by now we know that we're done
         return !isError();
@@ -788,8 +789,8 @@ public:
         // if we already started or are done we bail out
         if (_state == state_finished) return false;
 
-        // do we have a temp queue? if so we should get rid of it
-        if (_tempqueue) _tempqueue = nullptr;
+        // do we have a feedback channel? if so we should get rid of it
+        if (_feedback) _feedback = nullptr;
 
         // if the job was already started, nothing is left to do
         if (_state == state_running) return true;

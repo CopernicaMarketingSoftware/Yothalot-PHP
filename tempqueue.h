@@ -17,42 +17,14 @@
  *  Dependencies
  */
 #include <amqpcpp.h>
+#include "feedback.h"
 
 /**
  *  Class definition
  */
-class TempQueue
+class TempQueue : public Feedback
 {
-public:
-    /**
-     *  Interface implemented by a queue-owner
-     */
-    class Owner
-    {
-    public:
-        /**
-         *  Called when result comes in
-         *  @param  queue
-         *  @param  buffer
-         *  @param  size
-         */
-        virtual void onReceived(TempQueue *queue, const char *buffer, size_t size) = 0;
-        
-        /**
-         *  Called in case of an error
-         *  @param  queue
-         *  @param  message
-         */
-        virtual void onError(TempQueue *queue, const char *message) = 0;
-    };
-    
 private:
-    /**
-     *  Pointer to the owner
-     *  @var Owner
-     */
-    Owner *_owner;
-
     /**
      *  Rabbit connection object
      *  @var std::shared_ptr<Rabbit>
@@ -84,12 +56,6 @@ private:
      *  @var bool
      */
     bool _cancelled = false;
-
-    /**
-     *  Is the object ready, or do we still have to clean up things?
-     *  @var bool
-     */
-    bool _ready = false;
 
     
     /**
@@ -182,8 +148,8 @@ public:
      *  @param  owner       Object that will be notified with the result
      *  @param  rabbit      The core RabbitMQ connection
      */
-    TempQueue(Owner *owner, const std::shared_ptr<Rabbit> &rabbit) : 
-        _owner(owner), _rabbit(rabbit), _loop(rabbit->descriptors()), _channel(rabbit->connection())
+    TempQueue(Feedback::Owner *owner, const std::shared_ptr<Rabbit> &rabbit) : 
+        Feedback(owner), _rabbit(rabbit), _loop(rabbit->descriptors()), _channel(rabbit->connection())
     {
         // set up error handler
         _channel.onError(std::bind(&TempQueue::onError, this, _1));
@@ -218,7 +184,7 @@ public:
      *  Retrieve the name of the temp queue
      *  @return std::string
      */
-    const std::string &name() const
+    virtual const std::string &name() const override
     {
         // expose member
         return _name;
@@ -227,7 +193,7 @@ public:
     /**
      *  Start consuming data from the temporary queue
      */
-    void wait()
+    virtual void wait() override
     {
         // if object is ready, we do not have to do anything
         if (_ready) return;

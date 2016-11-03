@@ -705,8 +705,9 @@ public:
             // we need a temporary queue, because we might need to wait for the answer
             _feedback.reset(_rabbit->feedback() ? (Feedback *)new TempQueue(this, _rabbit) : (Feedback *)new Listener(this));
 
-            // store the name of the temp queue in the JSON
-            _json.tempqueue(_feedback->name());
+            // store the name or location of the feedback channel in the JSON
+            if (_rabbit->feedback()) _json.tempqueue(_feedback->name());
+            else _json.listener(_feedback->name());
 
             // before we start the job, we must ensure that all data is on disk or in nosq
             sync(false);

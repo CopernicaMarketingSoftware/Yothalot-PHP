@@ -523,5 +523,19 @@ public:
         set("exchange", "");
         set("routingkey", name);
     }
+
+    /**
+     *  Set the feedback ip and port in the json
+     *  @param  address
+     */
+    void listener(const std::string &address)
+    {
+        // find location of semicolon
+        size_t semicolon = address.find(':');
+
+        // set properties
+        set("ip", address.substr(0, semicolon));
+        set("port", address.substr(semicolon + 1));
+    }
 };
 

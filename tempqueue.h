@@ -191,6 +191,16 @@ public:
     }
 
     /**
+     *  The tcp channel that is handling incoming results
+     *  @return TcpHandler
+     */
+    virtual TcpHandler *handler() override
+    {
+        // the rabbitmq connection is the handler
+        return _rabbit.get();
+    }
+
+    /**
      *  Start consuming data from the temporary queue
      */
     virtual void wait() override

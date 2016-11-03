@@ -26,10 +26,10 @@ private:
     std::map<Job*,Php::Value> _jobs;
 
     /**
-     *  Set of all connections
+     *  Set of all TCP handles via which data can come one
      *  @var std::set
      */
-    std::set<std::shared_ptr<Rabbit>> _rabbits;
+    std::set<TcpHandler*> _handlers;
     
     
     /**
@@ -39,8 +39,8 @@ private:
      */
     void process(int fd, int flags) const
     {
-        // check all connections
-        for (const auto &rabbit : _rabbits) rabbit->connection()->process(fd, flags);
+        // check all tcp handlers
+        for (const auto &handler : _handlers) handler->process(fd, flags);
     }
 
     /**
@@ -105,8 +105,8 @@ public:
         // add the jobimpl class
         _jobs.insert(std::make_pair(wrapper, phpjob));
         
-        // add the rabbit connection
-        _rabbits.insert(wrapper->rabbit());
+        // add the tcp handler
+        _handlers.insert(wrapper->handler());
     }
     
     /**
@@ -115,14 +115,14 @@ public:
      */
     Php::Value fetch()
     {
-        // skip if there are no more connections listed
-        if (_rabbits.empty()) return nullptr;
+        // skip if there are no more tcp handlers listed
+        if (_handlers.empty()) return nullptr;
         
         // we are going to create one big event loop with the file descriptors of all connections
         Descriptors descriptors;
     
         // check all connections
-        for (const auto &rabbit : _rabbits) descriptors.add(rabbit->descriptors());
+        for (const auto &handler : _handlers) descriptors.add(handler->descriptors());
 
         // construct an event loop based on all these file descriptors
         Loop loop(descriptors);
@@ -159,13 +159,13 @@ public:
     Php::Value wait()
     {
         // skip if there are no more connections listed
-        if (_rabbits.empty()) return nullptr;
+        if (_handlers.empty()) return nullptr;
         
         // we are going to create one big event loop with the file descriptors of all connections
         Descriptors descriptors;
     
-        // check all connections
-        for (const auto &rabbit : _rabbits) descriptors.add(rabbit->descriptors());
+        // check all tcp handlers
+        for (const auto &handler : _handlers) descriptors.add(handler->descriptors());
         
         // construct an event loop based on all these file descriptors
         Loop loop(descriptors);
@@ -185,7 +185,7 @@ public:
         }
         
         // there are no more active jobs
-        _rabbits.clear();
+        _handlers.clear();
         
         // impossible to return a job
         return nullptr;

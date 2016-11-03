@@ -437,11 +437,11 @@ public:
     }
 
     /**
-     *  The underlying connection
-     *  @return Rabbit
+     *  The TCP handler that should be notified when the result is available
+     *  @return TcpHandler
      */
-    const std::shared_ptr<Rabbit> &rabbit() const
+    TcpHandler *handler() const
     {
-        return _impl->rabbit();
+        return _impl->handler();
     }
 };

@@ -21,11 +21,12 @@
 #include "json/object.h"
 #include "descriptors.h"
 #include "loop.h"
+#include "tcphandler.h"
 
 /**
  *  Class definition
  */
-class Rabbit : private AMQP::TcpHandler
+class Rabbit : private AMQP::TcpHandler, public TcpHandler
 {
 private:
     /**
@@ -218,10 +219,21 @@ public:
      *  Expose the filedescriptors
      *  @return Descriptors
      */
-    const Descriptors &descriptors() const
+    virtual const Descriptors &descriptors() const override
     {
         // expose member
         return _descriptors;
+    }
+    
+    /**
+     *  Method that is called when a filedescriptor becomes active
+     *  @param  fd      the filedescriptor that is active
+     *  @param  flags   type of activity (readable or writalble)
+     */
+    virtual void process(int fd, int flags) override
+    {
+        // pass on to the underlying AMQP connection
+        if (_rabbit != nullptr) _rabbit->process(fd, flags);
     }
 
     /**

@@ -819,12 +819,15 @@ public:
     }
 
     /**
-     *  The underlying connection
-     *  @return Rabbit
+     *  The underlying tcp handler that will be used for feedback handling
+     *  @return TcpHandler
      */
-    const std::shared_ptr<Rabbit> &rabbit() const
+    TcpHandler *handler() const
     {
-        // expose member
-        return _rabbit;
+        // if there is no feedback channel, there also is no tcp handler
+        if (_feedback == nullptr) return nullptr;
+        
+        // ask the feedback channel
+        return _feedback->handler();
     }
 };

@@ -76,6 +76,12 @@ public:
     virtual void wait() = 0;
     
     /**
+     *  The tcp channel that is handling incoming results
+     *  @return TcpHandler
+     */
+    virtual TcpHandler *handler() = 0;
+    
+    /**
      *  Name of the feedback channel
      *  @todo this should be changed into an "address" property
      */

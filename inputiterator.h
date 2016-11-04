@@ -31,12 +31,6 @@ private:
     std::string _name;
 
     /**
-     *  Run in strict mode (with data integrity checks)
-     *  @var bool
-     */
-    bool _strict;
-
-    /**
      *  The input object that is being iterated over
      *  @var std::shared_ptr<Yothalot::Input>
      */
@@ -59,10 +53,9 @@ public:
      *  Constructor
      *  @param  base        The original object
      *  @param  name        Name of the object
-     *  @param  strict      Run in strict mode
      */
-    InputIterator(Php::Base *base, const std::string &name, bool strict) :
-        Php::Iterator(base), _name(name), _strict(strict) {}
+    InputIterator(Php::Base *base, const std::string &name) :
+        Php::Iterator(base), _name(name) {}
 
     /**
      *  Destructor
@@ -134,7 +127,7 @@ public:
         try
         {
             // reconstruct input
-            _input = std::make_shared<Yothalot::Input>(_name.data(), _strict);
+            _input = std::make_shared<Yothalot::Input>(_name.data());
             
             // read first record
             _current = std::make_shared<Yothalot::Record>(*_input);

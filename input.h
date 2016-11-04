@@ -31,12 +31,6 @@ private:
     std::string _name;
 
     /**
-     *  Do we run in strict mode?
-     *  @var bool
-     */
-    bool _strict;
-
-    /**
      *  The input object that is used if the next() method is called
      *  @var std::shared_ptr<Yothalot::Input>
      */
@@ -54,9 +48,6 @@ public:
 
         // copy the name
         _name = params[0].stringValue();
-
-        // store the optional strict setting
-        _strict = (params.size() >= 2) ? params[1].boolValue() : false;
     }
 
     /**
@@ -79,7 +70,7 @@ public:
         try
         {
             // create impl object
-            return (int64_t) Yothalot::Input(_name.data(), _strict).size();
+            return (int64_t) Yothalot::Input(_name.data()).size();
         }
         catch (const std::runtime_error &exception)
         {
@@ -98,7 +89,7 @@ public:
         try
         {
             // create impl object
-            return (bool) Yothalot::Input(_name.data(), _strict).valid();
+            return (bool) Yothalot::Input(_name.data()).valid();
         }
         catch (const std::runtime_error &exception)
         {
@@ -114,7 +105,7 @@ public:
     virtual Php::Iterator *getIterator() override
     {
         // construct the new iterator
-        return new InputIterator(this, _name, _strict);
+        return new InputIterator(this, _name);
     }
 
     /**
@@ -127,7 +118,7 @@ public:
         try
         {
             // do we already have an input object?
-            if (_input == nullptr) _input = std::make_shared<Yothalot::Input>(_name.data(), _strict);
+            if (_input == nullptr) _input = std::make_shared<Yothalot::Input>(_name.data());
 
             // object must be valid
             if (!_input->valid()) return nullptr;
@@ -156,7 +147,7 @@ public:
         try
         {
             // do we already have an input object?
-            if (_input == nullptr) _input = std::make_shared<Yothalot::Input>(_name.data(), _strict);
+            if (_input == nullptr) _input = std::make_shared<Yothalot::Input>(_name.data());
 
             // object must be valid
             if (!_input->valid()) return 0;

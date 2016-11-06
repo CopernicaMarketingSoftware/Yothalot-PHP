@@ -89,25 +89,12 @@ public:
 
     /**
      *  Flush the output log
-     *
-     *  This will enforce that all bytes still in memory buffers are
-     *  flushed to disk
-     *
-     *  @note   Recompressing may lead to a smaller filesize when previous
-     *          flushes were done, but may be costly in terms of CPU and I/O
-     *
-     *  @param  params  Array of parameters, the first (optional) parameter can for recompression
      *  @return PHP value wrapping the same object, for chaining
      */
-    Php::Value flush(Php::Parameters &params)
+    Php::Value flush()
     {
-        // should we recompress? by default we don't do this, because
-        // this can be a pretty hefty operation, both in terms of CPU
-        // and in terms of I/O (the whole file is rewritten!)
-        bool recompress = !params.empty() && params[0];
-
         // flush the file, optionally recompressing it
-        _impl->flush(recompress);
+        _impl->flush();
 
         // allow chaining
         return this;
